@@ -1,14 +1,24 @@
 import { NextResponse } from "next/server";
 
-import { login, signSession } from "@/app/api/auth/utilsAuth";
+import { createSessionToken, verifyCredentials } from "@/lib/auth";
+import {
+  errorResponse,
+  parseJsonBody,
+  zodErrorResponse,
+} from "@/app/api/shared/responseShared";
+import { checkRequestRateLimit } from "@/app/api/shared/rateLimitShared";
 import { loginSchema } from "@/app/api/shared/validatorsShared";
-import { checkRateLimit } from "@/app/api/shared/rateLimitShared";
 
 import type { NextRequest } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const rateLimit = checkRateLimit(request, "login", 5, 15 * 60 * 1000);
+    const rateLimit = checkRequestRateLimit(
+      request,
+      "login",
+      5,
+      15 * 60 * 1000,
+    );
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: "Too many login attempts. Please try again later." },
@@ -16,18 +26,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    const body = await parseJsonBody(request);
     const result = loginSchema.safeParse(body);
 
     if (!result.success) {
-      return NextResponse.json(
-        { error: "Invalid input", details: result.error.errors },
-        { status: 400 },
-      );
+      return zodErrorResponse(result.error);
     }
 
     const { email, password } = result.data;
-    const user = await login(email, password);
+    const user = await verifyCredentials(email, password);
 
     if (!user) {
       return NextResponse.json(
@@ -36,36 +43,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sessionData = JSON.stringify({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    });
-
-    const signedSession = signSession(sessionData);
+    const { token, maxAgeSeconds } = createSessionToken(user.id);
 
     const response = NextResponse.json({
       success: true,
       user,
     });
 
-    response.cookies.set("taskboard_session", signedSession, {
+    response.cookies.set("taskboard_session", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: maxAgeSeconds,
       path: "/",
     });
 
     return response;
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }

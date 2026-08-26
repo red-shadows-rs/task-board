@@ -8,25 +8,20 @@ import {
   Save,
   Loader2,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
 
 import { PageTitle } from "@/components/common/titleCommon";
-import {
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  Input,
-  Label,
-  Avatar,
-  AvatarFallback,
-  getRoleColor,
-  cn,
-} from "@/components/ui";
+import { Badge } from "@/components/ui/badgeUi";
+import { Button } from "@/components/ui/buttonUi";
+import { Card, CardContent } from "@/components/ui/cardUi";
+import { Input } from "@/components/ui/inputUi";
+import { Label } from "@/components/ui/labelUi";
+import { Avatar, AvatarFallback } from "@/components/ui/avatarUi";
+import { getRoleColor, cn } from "@/components/ui/utilsUi";
 import { useLanguage } from "@/contexts/languageContext";
 import type { User } from "@/types";
 
@@ -38,50 +33,54 @@ export default function Profile({ user: initialUser }: ProfileProps) {
   const { t } = useLanguage();
   const [user, setUser] = useState<User>(initialUser);
 
-  const profileSchema = z
-    .object({
-      name: z.string().min(2, t("profile.messages.error.nameTooShort")),
-      email: z.string().email(t("common.validation.invalidEmail")),
-      currentPassword: z.string().optional(),
-      newPassword: z.string().optional(),
-      confirmPassword: z.string().optional(),
-    })
-    .refine(
-      (data) => {
-        if (data.newPassword || data.confirmPassword) {
-          return data.newPassword === data.confirmPassword;
-        }
-        return true;
-      },
-      {
-        message: t("profile.messages.error.passwordMismatch"),
-        path: ["confirmPassword"],
-      },
-    )
-    .refine(
-      (data) => {
-        if (data.newPassword) {
-          return data.newPassword.length >= 6;
-        }
-        return true;
-      },
-      {
-        message: t("profile.messages.error.passwordTooShort"),
-        path: ["newPassword"],
-      },
-    )
-    .refine(
-      (data) => {
-        if (data.newPassword) {
-          return !!data.currentPassword;
-        }
-        return true;
-      },
-      {
-        message: t("profile.messages.error.currentPasswordRequired"),
-        path: ["currentPassword"],
-      },
-    );
+  const profileSchema = useMemo(
+    () =>
+      z
+        .object({
+          name: z.string().min(2, t("profile.messages.error.nameTooShort")),
+          email: z.string().email(t("common.validation.invalidEmail")),
+          currentPassword: z.string().optional(),
+          newPassword: z.string().optional(),
+          confirmPassword: z.string().optional(),
+        })
+        .refine(
+          (data) => {
+            if (data.newPassword || data.confirmPassword) {
+              return data.newPassword === data.confirmPassword;
+            }
+            return true;
+          },
+          {
+            message: t("profile.messages.error.passwordMismatch"),
+            path: ["confirmPassword"],
+          },
+        )
+        .refine(
+          (data) => {
+            if (data.newPassword) {
+              return data.newPassword.length >= 8;
+            }
+            return true;
+          },
+          {
+            message: t("profile.messages.error.passwordTooShort"),
+            path: ["newPassword"],
+          },
+        )
+        .refine(
+          (data) => {
+            if (data.newPassword) {
+              return !!data.currentPassword;
+            }
+            return true;
+          },
+          {
+            message: t("profile.messages.error.currentPasswordRequired"),
+            path: ["currentPassword"],
+          },
+        ),
+    [t],
+  );
 
   type ProfileFormValues = z.infer<typeof profileSchema>;
 
@@ -92,7 +91,7 @@ export default function Profile({ user: initialUser }: ProfileProps) {
     reset,
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { name: user.name, email: user.email },
+    defaultValues: { name: user.name, email: user.email || "" },
   });
 
   useEffect(() => {
@@ -114,37 +113,45 @@ export default function Profile({ user: initialUser }: ProfileProps) {
 
   const onSubmit = async (data: ProfileFormValues) => {
     try {
-      const profileData = { name: data.name, email: data.email };
+      const payload: Record<string, string> = {
+        name: data.name,
+        email: data.email,
+      };
+
+      if (data.newPassword) {
+        payload.password = data.newPassword;
+        payload.currentPassword = data.currentPassword ?? "";
+      }
+
       const response = await fetch(`/api/users/${user.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(profileData),
+        body: JSON.stringify(payload),
       });
 
-      if (response.ok) {
-        const responseData = await response.json();
-        const updatedUser = responseData.user || responseData;
-        setUser(updatedUser);
-        toast.success(t("profile.messages.success.profileUpdated"));
-      } else {
-        toast.error(t("profile.messages.error.updateFailed"));
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        const message =
+          errorData?.error === "Current password is incorrect"
+            ? t("profile.messages.error.currentPasswordIncorrect")
+            : data.newPassword
+              ? t("profile.messages.error.passwordChangeFailed")
+              : t("profile.messages.error.updateFailed");
+        toast.error(message);
         return;
       }
 
-      if (data.newPassword) {
-        const passwordResponse = await fetch(`/api/users/${user.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ password: data.newPassword }),
-        });
-
-        if (passwordResponse.ok) {
-          toast.success(t("profile.messages.success.passwordChanged"));
-          reset({ name: data.name, email: data.email });
-        } else {
-          toast.error(t("profile.messages.error.passwordChangeFailed"));
-        }
+      const responseData = await response.json();
+      if (responseData.user) {
+        setUser(responseData.user);
       }
+
+      if (data.newPassword) {
+        toast.success(t("profile.messages.success.passwordChanged"));
+      } else {
+        toast.success(t("profile.messages.success.profileUpdated"));
+      }
+      reset({ name: data.name, email: data.email });
     } catch (_error) {
       toast.error(t("profile.messages.error.updateFailed"));
     }

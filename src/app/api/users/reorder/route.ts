@@ -1,30 +1,33 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/app/api/auth/utilsAuth";
-import { reorderUsers } from "@/app/api/shared/databaseShared";
+
+import { requireLeader } from "@/lib/auth";
+import { reorderUsers } from "@/lib/db";
+import {
+  errorResponse,
+  parseJsonBody,
+  zodErrorResponse,
+} from "@/app/api/shared/responseShared";
+import { userReorderBodySchema } from "@/app/api/shared/validatorsShared";
 
 export async function POST(request: Request) {
   try {
-    await requireAuth();
-    const body = await request.json();
-    const { updates } = body;
+    await requireLeader();
 
-    if (!Array.isArray(updates)) {
-      return NextResponse.json(
-        { error: "Invalid updates format" },
-        { status: 400 },
-      );
+    const body = await parseJsonBody(request);
+    const result = userReorderBodySchema.safeParse(body);
+    if (!result.success) {
+      return zodErrorResponse(result.error);
     }
 
-    await reorderUsers(updates);
+    reorderUsers(
+      result.data.updates.map((update) => ({
+        id: update.id,
+        order: update.order,
+      })),
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }

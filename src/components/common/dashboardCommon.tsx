@@ -2,6 +2,7 @@
 
 import { Search, LayoutGrid, List } from "lucide-react";
 import { useState, useEffect, useMemo, useCallback } from "react";
+import toast from "react-hot-toast";
 
 import { StatsCards, TaskCharts } from "@/components/common/chartsCommon";
 import { KanbanBoard } from "@/components/common/kanbanCommon";
@@ -184,10 +185,16 @@ export function Dashboard({
 
         if (response.ok) {
           fetchTasks();
+        } else {
+          toast.error(t("dashboard.tasks.messages.error.deleteFailed"));
+          fetchTasks();
         }
-      } catch (_error) {}
+      } catch (_error) {
+        toast.error(t("dashboard.tasks.messages.error.deleteFailed"));
+        fetchTasks();
+      }
     },
-    [fetchTasks],
+    [fetchTasks, t],
   );
 
   const handleTaskUpdate = useCallback(
@@ -203,14 +210,16 @@ export function Dashboard({
           body: JSON.stringify(updates),
         });
 
-        if (response.ok) {
-          fetchTasks();
+        if (!response.ok) {
+          toast.error(t("dashboard.tasks.messages.error.updateFailed"));
         }
+        fetchTasks();
       } catch (_error) {
+        toast.error(t("dashboard.tasks.messages.error.updateFailed"));
         fetchTasks();
       }
     },
-    [fetchTasks],
+    [fetchTasks, t],
   );
 
   const handleEditSubmit = async (data: SectionInput) => {
@@ -225,7 +234,7 @@ export function Dashboard({
 
   const handleTaskEditSubmit = async (data: TaskInput) => {
     if (!selectedTask) return;
-    await handleTaskUpdate(selectedTask.id, data as unknown as Partial<Task>);
+    await handleTaskUpdate(selectedTask.id, { status: data.status });
     setIsEditTaskDialogOpen(false);
     setSelectedTask(null);
   };
@@ -281,9 +290,11 @@ export function Dashboard({
         });
 
         if (!response.ok) {
-          throw new Error(t("common.apiErrors.failedToUpdateSection"));
+          toast.error(t("common.apiErrors.failedToUpdateSection"));
         }
+        fetchSections();
       } catch (_error) {
+        toast.error(t("common.apiErrors.failedToUpdateSection"));
         fetchSections();
       }
     },
@@ -472,6 +483,7 @@ export function Dashboard({
         <TaskDetailsDialog
           task={selectedTask}
           users={users}
+          currentUser={user}
           projects={projects}
           sections={sections}
           open={isViewDialogOpen}

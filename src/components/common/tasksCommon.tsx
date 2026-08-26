@@ -30,7 +30,7 @@ import { useState, useCallback, useEffect } from "react";
 import DOMPurify from "dompurify";
 import { useForm } from "react-hook-form";
 
-import { taskSchema } from "@/app/api/shared/validatorsShared";
+import { taskCreateSchema } from "@/app/api/shared/validatorsShared";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -86,6 +86,7 @@ import { formatPrice, formatPricePlain } from "@/utils/pricingUtils";
 interface TaskDetailsDialogProps {
   task: Task;
   users: User[];
+  currentUser?: User;
   projects?: Project[];
   sections?: Section[];
   open: boolean;
@@ -95,6 +96,7 @@ interface TaskDetailsDialogProps {
 export function TaskDetailsDialog({
   task,
   users,
+  currentUser,
   projects,
   sections,
   open,
@@ -261,36 +263,40 @@ export function TaskDetailsDialog({
                 </Badge>
               </div>
 
-              <div className="space-y-1.5">
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
-                  <DollarSign className="h-3.5 w-3.5" />
-                  {t("dashboard.tasks.card.price")}
-                </h4>
-                {(task.assigneePrices ?? []).length > 0 ? (
-                  <div className="space-y-1.5">
-                    {task.assigneePrices!.map((ap) => {
-                      const u = usersArray.find((usr) => usr.id === ap.userId);
-                      return (
-                        <div
-                          key={ap.userId}
-                          className="flex items-center gap-3 text-sm"
-                        >
-                          <span className="text-muted-foreground min-w-0 truncate">
-                            {u?.name || ap.userId}
-                          </span>
-                          <span className="text-emerald-700 dark:text-emerald-400 font-semibold tabular-nums">
-                            {formatPrice(ap.price, language)}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-                    $0.00
-                  </div>
-                )}
-              </div>
+              {currentUser?.role === "leader" && (
+                <div className="space-y-1.5">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
+                    <DollarSign className="h-3.5 w-3.5" />
+                    {t("dashboard.tasks.card.price")}
+                  </h4>
+                  {(task.assigneePrices ?? []).length > 0 ? (
+                    <div className="space-y-1.5">
+                      {task.assigneePrices!.map((ap) => {
+                        const u = usersArray.find(
+                          (usr) => usr.id === ap.userId,
+                        );
+                        return (
+                          <div
+                            key={ap.userId}
+                            className="flex items-center gap-3 text-sm"
+                          >
+                            <span className="text-muted-foreground min-w-0 truncate">
+                              {u?.name || ap.userId}
+                            </span>
+                            <span className="text-emerald-700 dark:text-emerald-400 font-semibold tabular-nums">
+                              {formatPrice(ap.price, language)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                      $0.00
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
@@ -781,14 +787,13 @@ export function TaskForm({
     formState: { errors },
     setValue,
   } = useForm<TaskInput>({
-    resolver: zodResolver(taskSchema),
+    resolver: zodResolver(taskCreateSchema),
     defaultValues: {
       title: task?.title || { en: "", ar: "" },
       description: task?.description || { en: "", ar: "" },
       status: task?.status || "todo",
       assignedTo: task?.assignedTo || [],
       dueDate: task?.dueDate || "",
-      createdAt: task?.createdAt || new Date().toISOString(),
       priority: task?.priority || "low",
       sectionId: effectiveSectionId,
       tags: task?.tags || [],

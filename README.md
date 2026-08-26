@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/red-shadows-rs/TaskBoard/blob/main/README.ar.md">العربية</a>
+  <a href="https://github.com/red-shadows-rs/TaskBoard/blob/main/README_AR.md">العربية</a>
   &nbsp;&bull;&nbsp;
   <a href="#-features">Features</a>
   &nbsp;&bull;&nbsp;
@@ -30,7 +30,7 @@
 <br/>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-4.0.6-2563eb?style=for-the-badge" alt="Version 4.0.6">
+  <img src="https://img.shields.io/badge/version-4.1.0-2563eb?style=for-the-badge" alt="Version 4.1.0">
   <img src="https://img.shields.io/badge/license-MIT-10b981?style=for-the-badge" alt="MIT License">
   <img src="https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js 16">
   <img src="https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React 18">
@@ -47,7 +47,7 @@
 Managing projects across bilingual teams is challenging. TaskBoard bridges the gap with a Kanban-style interface that supports both English and Arabic natively — from RTL layout to bilingual task descriptions. Built on Next.js 16 with a focus on performance, security, and developer experience.
 
 - **Bilingual by Design** — Every feature works in English and Arabic, not as an afterthought
-- **Self-Contained** — JSON file-based database means zero external dependencies; deploy anywhere
+- **Self-Contained** — Embedded SQLite database (better-sqlite3) means zero external services; deploy anywhere
 - **Production-Ready** — Rate limiting, security headers, XSS protection, and session-based auth out of the box
 - **Export Everything** — Generate PDF reports for projects, tasks, and analytics with bilingual font support
 
@@ -116,6 +116,7 @@ Managing projects across bilingual teams is challenging. TaskBoard bridges the g
 | **Charts**        | [Recharts](https://recharts.org/)                                                                                 | Analytics              |
 | **PDF**           | [jsPDF](https://github.com/parallax/jsPDF) + [jspdf-autotable](https://github.com/simonbengtsson/jsPDF-AutoTable) | Export                 |
 | **Auth**          | [bcryptjs](https://github.com/dcodeIO/bcrypt.js) + HMAC-SHA256                                                    | Sessions               |
+| **Database**      | [better-sqlite3](https://github.com/WiseLibs/better-sqlite3)                                                      | Embedded SQLite        |
 | **Animations**    | [Framer Motion](https://www.framer.com/motion/)                                                                   | Transitions            |
 | **Notifications** | [react-hot-toast](https://react-hot-toast.com/)                                                                   | Toast alerts           |
 | **Dates**         | [date-fns](https://date-fns.org/) + [react-day-picker](https://react-day-picker.js.org/)                          | Date handling          |
@@ -144,6 +145,12 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+### First Account
+
+On first launch no users exist. The first account created through the app is
+automatically promoted to **leader** (bootstrap mode); after that, only leaders
+can create and manage users from the Team page.
+
 ### Environment Variables
 
 | Variable         | Required | Default       | Description             |
@@ -171,11 +178,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ```
 TaskBoard/
-├── databases/                  # JSON file-based database
-│   ├── projectsDatabase.json
-│   ├── sectionsDatabase.json
-│   ├── tasksDatabase.json
-│   └── usersDatabase.json
+├── data/                       # SQLite database (created at runtime)
 ├── public/
 │   ├── css/                    # Font Awesome
 │   ├── fonts/                  # IBM Plex Sans Arabic (PDF)
@@ -190,7 +193,7 @@ TaskBoard/
 │   │   │   ├── sections/       # Section CRUD + reorder
 │   │   │   ├── tasks/          # Task CRUD + reorder + images
 │   │   │   ├── users/          # User CRUD + reorder
-│   │   │   └── shared/         # Database, rate limit, validators
+│   │   │   └── shared/         # Rate limiting, validators, responses
 │   │   ├── dashboard/          # Tasks, projects, analytics, team
 │   │   ├── login/              # Authentication page
 │   │   └── profile/            # User profile
@@ -200,6 +203,7 @@ TaskBoard/
 │   │   ├── pages/              # Page-level components
 │   │   └── ui/                 # UI primitives (shadcn/ui-style)
 │   ├── contexts/               # Language + Zustand store
+│   ├── lib/                    # Auth sessions + SQLite data layer
 │   ├── types/                  # TypeScript interfaces
 │   └── utils/                  # PDF export, pricing
 ├── CHANGELOG.md
@@ -208,7 +212,7 @@ TaskBoard/
 ├── SECURITY.md
 ├── LICENSE
 ├── README.md
-├── README.ar.md
+├── README_AR.md
 ├── next.config.ts
 ├── tailwind.config.ts
 ├── tsconfig.json
@@ -219,7 +223,7 @@ TaskBoard/
 
 ## 🗺️ Roadmap
 
-- [ ] Real database integration (PostgreSQL / SQLite)
+- [x] Embedded database (SQLite via better-sqlite3)
 - [ ] Email notifications for task assignments
 - [ ] OAuth2 / social login support
 - [ ] WebSocket real-time updates
@@ -250,18 +254,19 @@ To report a security vulnerability, please follow our [Security Policy](./SECURI
 
 See [CHANGELOG.md](./CHANGELOG.md) for a detailed version history. This project follows [Semantic Versioning](https://semver.org/).
 
-| Version   | Date       | Highlights                                                           |
-| --------- | ---------- | -------------------------------------------------------------------- |
-| **4.0.6** | 2026-05-15 | Updated author username, set GitHub repo topics                         |
+| Version   | Date       | Highlights                                                                    |
+| --------- | ---------- | ----------------------------------------------------------------------------- |
+| **4.1.0** | 2026-08-27 | SQLite storage, server-side RBAC, hardened sessions, API cleanup              |
+| **4.0.6** | 2026-05-15 | Updated author username, set GitHub repo topics                               |
 | **4.0.5** | 2026-05-14 | Fixed drag-and-drop on desktop, fixed metadata icons, removed ESLint comments |
-| 4.0.4     | 2026-05-14 | Removed ESLint disable comments, removed console logs, added missing tags |
-| 4.0.3     | 2026-05-14 | Fixed repo links, updated branding, version bump                         |
-| 4.0.2     | 2026-05-14 | Restored original icon, added .env.example                               |
-| 4.0.1     | 2026-05-14 | Documentation overhaul, Arabic README, improved icons, data cleanup      |
-| 4.0.0     | 2026-05-14 | Analytics, PDF export, PWA, bilingual, dark/light theme, drag & drop |
-| 3.0.0     | 2026-04-01 | Project/section management, task CRUD, user roles, session auth      |
-| 2.0.0     | 2026-03-01 | Kanban board UI, task statuses/priorities/tags, dashboard layout     |
-| 1.0.0     | 2026-02-01 | Initial setup: Next.js App Router, login page, Tailwind CSS          |
+| 4.0.4     | 2026-05-14 | Removed ESLint disable comments, removed console logs, added missing tags     |
+| 4.0.3     | 2026-05-14 | Fixed repo links, updated branding, version bump                              |
+| 4.0.2     | 2026-05-14 | Restored original icon, added .env.example                                    |
+| 4.0.1     | 2026-05-14 | Documentation overhaul, Arabic README, improved icons, data cleanup           |
+| 4.0.0     | 2026-05-14 | Analytics, PDF export, PWA, bilingual, dark/light theme, drag & drop          |
+| 3.0.0     | 2026-04-01 | Project/section management, task CRUD, user roles, session auth               |
+| 2.0.0     | 2026-03-01 | Kanban board UI, task statuses/priorities/tags, dashboard layout              |
+| 1.0.0     | 2026-02-01 | Initial setup: Next.js App Router, login page, Tailwind CSS                   |
 
 ---
 

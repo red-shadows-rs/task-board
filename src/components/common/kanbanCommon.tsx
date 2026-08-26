@@ -19,6 +19,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useState, useEffect, useCallback, memo, useRef } from "react";
+import toast from "react-hot-toast";
 
 import { TaskCard } from "@/components/common/tasksCommon";
 import { Badge } from "@/components/ui/badgeUi";
@@ -212,13 +213,11 @@ const KanbanBoard = memo(function KanbanBoard({
 
   const isTaskDragDisabled = (task: Task) => {
     if (isMobile) return true;
-    if (currentUser.role === "leader" || currentUser.role === "client")
-      return false;
+    if (currentUser.role === "leader") return false;
 
     if (currentUser.role === "member") {
       if (task.status === "done") return true;
       if (task.assignedTo.includes(currentUser.id)) return false;
-      if (task.assignedTo.length === 0) return false;
       return true;
     }
     return true;
@@ -413,7 +412,15 @@ const KanbanBoard = memo(function KanbanBoard({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ updates }),
-        }).catch(() => {});
+        })
+          .then((response) => {
+            if (!response.ok) {
+              toast.error(t("common.apiErrors.failedToUpdateTaskOrder"));
+            }
+          })
+          .catch(() => {
+            toast.error(t("common.apiErrors.failedToUpdateTaskOrder"));
+          });
       }
     }
   };

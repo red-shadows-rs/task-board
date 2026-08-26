@@ -10,19 +10,13 @@ export const useStore = create<AppState>((set, get) => ({
   users: [],
   projects: [],
   tasks: [],
-  filteredSections: [],
   filteredProjects: [],
-  filteredTasks: [],
   searchQuery: "",
   statusFilter: "all",
-  viewMode: "kanban",
 
   setUser: (user) => set({ user }),
 
-  setSections: (sections) => {
-    set({ sections });
-    get().filterSections();
-  },
+  setSections: (sections) => set({ sections }),
 
   setUsers: (users) => set({ users }),
 
@@ -31,26 +25,17 @@ export const useStore = create<AppState>((set, get) => ({
     get().filterProjects();
   },
 
-  setTasks: (tasks) => {
-    set({ tasks });
-    get().filterTasks();
-  },
+  setTasks: (tasks) => set({ tasks }),
 
   setSearchQuery: (query) => {
     set({ searchQuery: query });
-    get().filterSections();
     get().filterProjects();
-    get().filterTasks();
   },
 
   setStatusFilter: (status) => {
     set({ statusFilter: status });
-    get().filterSections();
     get().filterProjects();
-    get().filterTasks();
   },
-
-  setViewMode: (mode) => set({ viewMode: mode }),
 
   addSection: (section) => {
     const currentSections = get().sections;
@@ -58,7 +43,6 @@ export const useStore = create<AppState>((set, get) => ({
       ? [...currentSections, section]
       : [section];
     set({ sections });
-    get().filterSections();
   },
 
   updateSection: (id, updates) => {
@@ -70,7 +54,6 @@ export const useStore = create<AppState>((set, get) => ({
       section.id === id ? { ...section, ...updates } : section,
     );
     set({ sections });
-    get().filterSections();
   },
 
   deleteSection: (id) => {
@@ -80,7 +63,6 @@ export const useStore = create<AppState>((set, get) => ({
     }
     const sections = currentSections.filter((section) => section.id !== id);
     set({ sections });
-    get().filterSections();
   },
 
   addProject: (project) => {
@@ -120,7 +102,6 @@ export const useStore = create<AppState>((set, get) => ({
       ? [...currentTasks, task]
       : [task];
     set({ tasks });
-    get().filterTasks();
   },
 
   updateTask: (id, updates) => {
@@ -132,7 +113,6 @@ export const useStore = create<AppState>((set, get) => ({
       task.id === id ? { ...task, ...updates } : task,
     );
     set({ tasks });
-    get().filterTasks();
   },
 
   deleteTask: (id) => {
@@ -142,29 +122,6 @@ export const useStore = create<AppState>((set, get) => ({
     }
     const tasks = currentTasks.filter((task) => task.id !== id);
     set({ tasks });
-    get().filterTasks();
-  },
-
-  filterSections: () => {
-    const { sections, searchQuery } = get();
-
-    if (!Array.isArray(sections)) {
-      set({ filteredSections: [] });
-      return;
-    }
-
-    let filtered = [...sections];
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (section) =>
-          section.title.en.toLowerCase().includes(query) ||
-          section.title.ar.toLowerCase().includes(query),
-      );
-    }
-
-    set({ filteredSections: filtered });
   },
 
   filterProjects: () => {
@@ -191,34 +148,5 @@ export const useStore = create<AppState>((set, get) => ({
     }
 
     set({ filteredProjects: filtered });
-  },
-
-  filterTasks: () => {
-    const { tasks, searchQuery, statusFilter } = get();
-
-    if (!Array.isArray(tasks)) {
-      set({ filteredTasks: [] });
-      return;
-    }
-
-    let filtered = [...tasks];
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (task) =>
-          task.title.en.toLowerCase().includes(query) ||
-          task.title.ar.toLowerCase().includes(query) ||
-          task.description.en.toLowerCase().includes(query) ||
-          task.description.ar.toLowerCase().includes(query) ||
-          task.tags.some((tag: string) => tag.toLowerCase().includes(query)),
-      );
-    }
-
-    if (statusFilter && statusFilter !== "all") {
-      filtered = filtered.filter((task) => task.status === statusFilter);
-    }
-
-    set({ filteredTasks: filtered });
   },
 }));

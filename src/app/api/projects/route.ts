@@ -1,86 +1,68 @@
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 
-import { requireAuth } from "@/app/api/auth/utilsAuth";
-import { getProjects, createProject } from "@/app/api/shared/databaseShared";
-import { projectSchema } from "@/app/api/shared/validatorsShared";
+import { requireAuth, requireLeader } from "@/lib/auth";
+import { createProject, getUserById, listProjects } from "@/lib/db";
+import {
+  HttpError,
+  errorResponse,
+  parseJsonBody,
+  zodErrorResponse,
+} from "@/app/api/shared/responseShared";
+import { projectCreateSchema } from "@/app/api/shared/validatorsShared";
 
 import type { NextRequest } from "next/server";
 
 export async function GET() {
   try {
     const user = await requireAuth();
-    const allProjects = await getProjects();
-
-    let projects = allProjects;
-    if (user.role !== "leader") {
-      projects = allProjects.filter((project) =>
-        project.teamMembers.includes(user.id),
-      );
-    }
+    const projects = listProjects(user);
 
     return NextResponse.json({ projects });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAuth();
+    const user = await requireLeader();
 
-    if (user.role !== "leader") {
-      return NextResponse.json(
-        { error: "Forbidden: Only leaders can create projects" },
-        { status: 403 },
-      );
-    }
-
-    const body = await request.json();
-
-    const result = projectSchema.safeParse(body);
+    const body = await parseJsonBody(request);
+    const result = projectCreateSchema.safeParse(body);
     if (!result.success) {
-      return NextResponse.json(
-        { error: "Invalid input", details: result.error.errors },
-        { status: 400 },
-      );
+      return zodErrorResponse(result.error);
     }
 
-    const allProjects = await getProjects();
+    const { title, startDate, endDate, status, teamMembers, color, order } =
+      result.data;
+
+    for (const memberId of teamMembers) {
+      if (!getUserById(memberId)) {
+        throw new HttpError(400, "Invalid team member id");
+      }
+    }
+
+    const allProjects = listProjects();
     const maxOrder = allProjects.reduce(
       (max, p) => Math.max(max, p.order || 0),
       -1,
     );
-    const newOrder = maxOrder + 1;
 
-    const project = await createProject({
+    const project = createProject({
       id: uuidv4(),
-      title: result.data.title,
-      startDate: result.data.startDate || "",
-      endDate: result.data.endDate || "",
-      status: result.data.status,
-      teamMembers: result.data.teamMembers || [],
-      color: result.data.color || "",
+      title,
+      startDate: startDate || "",
+      endDate: endDate || "",
+      status,
+      teamMembers,
+      color: color || "",
       createdBy: user.id,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      order: result.data.order ?? newOrder,
+      order: order ?? maxOrder + 1,
     });
 
     return NextResponse.json({ project }, { status: 201 });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }

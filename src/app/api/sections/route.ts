@@ -1,39 +1,36 @@
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 
-import { requireAuth } from "@/app/api/auth/utilsAuth";
 import {
-  getSections,
+  getProjectOrThrow,
+  assertCanWriteProject,
+  requireAuth,
+} from "@/lib/auth";
+import {
   createSection,
-  getSectionsByProjectId,
-} from "@/app/api/shared/databaseShared";
-import { sectionSchema } from "@/app/api/shared/validatorsShared";
+  getMaxSectionOrderInProject,
+  listSections,
+} from "@/lib/db";
+import {
+  errorResponse,
+  parseJsonBody,
+  zodErrorResponse,
+} from "@/app/api/shared/responseShared";
+import { sectionCreateSchema } from "@/app/api/shared/validatorsShared";
 
 import type { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
-    await requireAuth();
+    const user = await requireAuth();
     const { searchParams } = new URL(request.url);
-    const projectId = searchParams.get("projectId");
+    const projectId = searchParams.get("projectId") || undefined;
 
-    const allSections = await getSections();
-
-    let sections = allSections;
-
-    if (projectId) {
-      sections = allSections.filter((s) => s.projectId === projectId);
-    }
+    const sections = listSections(user, projectId);
 
     return NextResponse.json({ sections });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }
 
@@ -41,44 +38,26 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth();
 
-    if (user.role !== "leader" && user.role !== "client") {
-      return NextResponse.json(
-        { error: "Forbidden: Only leaders and clients can create sections" },
-        { status: 403 },
-      );
-    }
-
-    const body = await request.json();
-
-    const result = sectionSchema.safeParse(body);
+    const body = await parseJsonBody(request);
+    const result = sectionCreateSchema.safeParse(body);
     if (!result.success) {
-      return NextResponse.json(
-        { error: "Invalid input", details: result.error.errors },
-        { status: 400 },
-      );
+      return zodErrorResponse(result.error);
     }
 
-    const projectSections = await getSectionsByProjectId(result.data.projectId);
-    const maxOrder = projectSections.reduce(
-      (max, s) => Math.max(max, s.order || 0),
-      -1,
-    );
-    const newOrder = maxOrder + 1;
+    const project = getProjectOrThrow(result.data.projectId);
+    assertCanWriteProject(user, project);
 
-    const section = await createSection({
+    const maxOrder = getMaxSectionOrderInProject(project.id);
+
+    const section = createSection({
       id: uuidv4(),
-      ...result.data,
-      order: result.data.order ?? newOrder,
+      projectId: project.id,
+      title: result.data.title,
+      order: result.data.order ?? maxOrder + 1,
     });
 
     return NextResponse.json({ section }, { status: 201 });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }

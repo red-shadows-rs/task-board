@@ -1,128 +1,92 @@
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 
-import { requireAuth } from "@/app/api/auth/utilsAuth";
 import {
-  getTasks,
+  assertCanWriteProject,
+  getProjectOrThrow,
+  isLeader,
+  requireAuth,
+} from "@/lib/auth";
+import {
   createTask,
+  getMaxTaskOrderInSection,
   getSectionById,
-  getTasksBySectionId,
-  getSectionsByProjectId,
-} from "@/app/api/shared/databaseShared";
-import { taskSchema } from "@/app/api/shared/validatorsShared";
+  listTasks,
+  recomputeProjectEndDate,
+} from "@/lib/db";
+import {
+  errorResponse,
+  parseJsonBody,
+  zodErrorResponse,
+} from "@/app/api/shared/responseShared";
+import { taskCreateSchema } from "@/app/api/shared/validatorsShared";
 
 import type { NextRequest } from "next/server";
+import type { Task } from "@/types";
+
+function stripPrices(tasks: Task[]): Task[] {
+  return tasks.map((task) =>
+    task.assigneePrices && task.assigneePrices.length > 0
+      ? { ...task, assigneePrices: [] }
+      : task,
+  );
+}
 
 export async function GET(request: NextRequest) {
   try {
     const user = await requireAuth();
     const { searchParams } = new URL(request.url);
-    const sectionId =
-      searchParams.get("sectionId") || searchParams.get("taskId");
+    const sectionId = searchParams.get("sectionId") || undefined;
+    const projectId = searchParams.get("projectId") || undefined;
 
-    const allTasks = await getTasks();
+    const tasks = listTasks(user, { sectionId, projectId });
 
-    let tasks = allTasks;
-
-    const projectId = searchParams.get("projectId");
-
-    if (sectionId) {
-      tasks = allTasks.filter((t) => t.sectionId === sectionId);
-    }
-
-    if (user.role === "member") {
-      tasks = tasks.filter((task) => task.assignedTo.includes(user.id));
-    } else if (user.role === "leader") {
-      if (!sectionId && !projectId) {
-        tasks = tasks.filter((task) => task.assignedTo.includes(user.id));
-      }
-    }
-
-    return NextResponse.json({ tasks });
+    return NextResponse.json({
+      tasks: isLeader(user) ? tasks : stripPrices(tasks),
+    });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth();
-    const body = await request.json();
 
-    if (body.projectId) {
-      const allTasks = await getTasks();
-      const projectSections = await getSectionsByProjectId(body.projectId);
-      const sectionIds = projectSections.map((s) => s.id);
-
-      let tasks = allTasks.filter((t) => sectionIds.includes(t.sectionId));
-
-      if (user.role === "member") {
-        tasks = tasks.filter((task) => task.assignedTo.includes(user.id));
-      } else if (user.role === "leader") {
-        tasks = tasks.filter((task) => task.assignedTo.includes(user.id));
-      }
-
-      return NextResponse.json({ tasks });
-    }
-
-    if (user.role === "member") {
-      return NextResponse.json(
-        { error: "Forbidden: Only leaders and clients can create tasks" },
-        { status: 403 },
-      );
-    }
-
-    const result = taskSchema.safeParse(body);
+    const body = await parseJsonBody(request);
+    const result = taskCreateSchema.safeParse(body);
     if (!result.success) {
-      return NextResponse.json(
-        { error: "Invalid input", details: result.error.errors },
-        { status: 400 },
-      );
+      return zodErrorResponse(result.error);
     }
 
-    const section = await getSectionById(result.data.sectionId);
+    const section = getSectionById(result.data.sectionId);
     if (!section) {
       return NextResponse.json({ error: "Section not found" }, { status: 404 });
     }
 
-    const sectionTasks = await getTasksBySectionId(result.data.sectionId);
-    const maxOrder = sectionTasks.reduce(
-      (max, t) => Math.max(max, t.order || 0),
-      -1,
-    );
-    const newOrder = maxOrder + 1;
+    const project = getProjectOrThrow(section.projectId);
+    assertCanWriteProject(user, project);
 
-    const task = await createTask({
+    const maxOrder = getMaxTaskOrderInSection(section.id);
+
+    const task = createTask({
       id: uuidv4(),
-      sectionId: result.data.sectionId,
+      sectionId: section.id,
       title: result.data.title,
       description: result.data.description,
-      status: result.data.status,
-      assignedTo: result.data.assignedTo || [],
+      status: result.data.status ?? "todo",
+      assignedTo: result.data.assignedTo,
+      assigneePrices: user.role === "leader" ? result.data.assigneePrices : [],
       dueDate: result.data.dueDate || "",
-      priority: result.data.priority,
-      tags: result.data.tags || [],
-      createdAt: result.data.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      order: result.data.order ?? newOrder,
-      assigneePrices:
-        user.role === "leader" ? (result.data.assigneePrices ?? []) : [],
+      priority: result.data.priority ?? "medium",
+      tags: result.data.tags,
+      order: result.data.order ?? maxOrder + 1,
     });
+
+    recomputeProjectEndDate(section.projectId);
 
     return NextResponse.json({ task }, { status: 201 });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }

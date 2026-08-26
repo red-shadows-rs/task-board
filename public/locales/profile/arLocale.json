@@ -26,7 +26,8 @@
       "passwordMismatch": "كلمات المرور غير متطابقة",
       "nameTooShort": "يجب أن يتكون الاسم من حرفين على الأقل",
       "passwordTooShort": "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
-      "currentPasswordRequired": "كلمة المرور الحالية مطلوبة"
+      "currentPasswordRequired": "كلمة المرور الحالية مطلوبة",
+      "currentPasswordIncorrect": "كلمة المرور الحالية غير صحيحة"
     }
   }
 }

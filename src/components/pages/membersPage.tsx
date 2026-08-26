@@ -80,14 +80,25 @@ import { useLanguage } from "@/contexts/languageContext";
 
 import type { User, UserRole } from "@/types";
 
+export interface MemberInput {
+  name: string;
+  email: string;
+  password: string;
+  role: UserRole;
+}
+
+export interface MemberUpdates extends Partial<Omit<User, "id">> {
+  password?: string;
+}
+
 interface MembersManagementProps {
   users: User[];
   currentUser: User;
-  onAddMember: (member: Omit<User, "id">) => Promise<void>;
-  onUpdateMember: (id: string, updates: Partial<User>) => Promise<void>;
+  onAddMember: (member: MemberInput) => Promise<boolean>;
+  onUpdateMember: (id: string, updates: MemberUpdates) => Promise<boolean>;
   onDeleteMember: (id: string) => Promise<void>;
   onReorderMembers?: (
-    updates: { id: string; order: number; role?: UserRole }[],
+    updates: { id: string; order: number }[],
   ) => Promise<void>;
 }
 
@@ -428,12 +439,12 @@ export function MembersManagement({
       );
       setLocalUsers(newUsers);
 
-      if (onReorderMembers) {
-        await onReorderMembers([
-          { id: activeUser.id, role: newRole, order: newOrder },
-        ]);
-      } else {
-        await onUpdateMember(activeUser.id, { role: newRole, order: newOrder });
+      const ok = await onUpdateMember(activeUser.id, {
+        role: newRole,
+        order: newOrder,
+      });
+      if (!ok) {
+        setLocalUsers(users);
       }
     } else if (overUserId && activeUser.id !== overUserId) {
       const roleUsers = localUsers
@@ -460,12 +471,6 @@ export function MembersManagement({
 
         if (onReorderMembers) {
           await onReorderMembers(updates);
-        } else {
-          await fetch("/api/users/reorder", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ updates }),
-          });
         }
       }
     }
@@ -487,12 +492,13 @@ export function MembersManagement({
   const [editingMember, setEditingMember] = useState<User | null>(null);
   const [isEditMemberDialogOpen, setIsEditMemberDialogOpen] = useState(false);
   const [showEditPassword, setShowEditPassword] = useState(false);
+  const [editPassword, setEditPassword] = useState("");
 
   const usersArray = Array.isArray(localUsers) ? localUsers : [];
   const filteredUsers = usersArray.filter((user) => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
+      (user.email || "").toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = selectedRole === "all" || user.role === selectedRole;
     return matchesSearch && matchesRole;
   });
@@ -523,13 +529,16 @@ export function MembersManagement({
     }
 
     setErrors({});
-    await onAddMember(newMember);
-    setNewMember({ name: "", email: "", password: "", role: "" as UserRole });
-    setIsAddDialogOpen(false);
+    const ok = await onAddMember(newMember);
+    if (ok) {
+      setNewMember({ name: "", email: "", password: "", role: "" as UserRole });
+      setIsAddDialogOpen(false);
+    }
   };
 
   const onEditClick = (user: User) => {
     setEditingMember(user);
+    setEditPassword("");
     setEditErrors({});
     setIsEditMemberDialogOpen(true);
   };
@@ -554,15 +563,17 @@ export function MembersManagement({
     }
 
     setEditErrors({});
-    await onUpdateMember(editingMember.id, {
+    const ok = await onUpdateMember(editingMember.id, {
       name: editingMember.name,
       email: editingMember.email,
       role: editingMember.role,
-      password: editingMember.password,
+      password: editPassword || undefined,
     });
 
-    setIsEditMemberDialogOpen(false);
-    setEditingMember(null);
+    if (ok) {
+      setIsEditMemberDialogOpen(false);
+      setEditingMember(null);
+    }
   };
 
   return (
@@ -937,13 +948,8 @@ export function MembersManagement({
                       id="edit-password"
                       type={showEditPassword ? "text" : "password"}
                       placeholder={t("dashboard.team.placeholders.leaveBlank")}
-                      value={editingMember.password || ""}
-                      onChange={(e) =>
-                        setEditingMember({
-                          ...editingMember,
-                          password: e.target.value,
-                        })
-                      }
+                      value={editPassword}
+                      onChange={(e) => setEditPassword(e.target.value)}
                       className="ltr:pr-10 rtl:pl-10"
                     />
                     <button

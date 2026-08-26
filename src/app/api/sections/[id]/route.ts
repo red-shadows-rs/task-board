@@ -1,36 +1,45 @@
 import { NextResponse } from "next/server";
 
-import { requireAuth } from "@/app/api/auth/utilsAuth";
 import {
-  getSectionById,
-  updateSection,
+  assertCanReadProject,
+  assertCanWriteProject,
+  getProjectOrThrow,
+  requireAuth,
+} from "@/lib/auth";
+import {
+  cleanupAttachmentFiles,
   deleteSection,
-} from "@/app/api/shared/databaseShared";
+  getSectionById,
+  updateSectionFields,
+} from "@/lib/db";
+import {
+  errorResponse,
+  parseJsonBody,
+  zodErrorResponse,
+} from "@/app/api/shared/responseShared";
+import { sectionUpdateSchema } from "@/app/api/shared/validatorsShared";
 
 import type { NextRequest } from "next/server";
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireAuth();
+    const user = await requireAuth();
     const { id } = await params;
-    const section = await getSectionById(id);
+    const section = getSectionById(id);
 
     if (!section) {
       return NextResponse.json({ error: "Section not found" }, { status: 404 });
     }
 
+    const project = getProjectOrThrow(section.projectId);
+    assertCanReadProject(user, project);
+
     return NextResponse.json({ section });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }
 
@@ -41,32 +50,29 @@ export async function PATCH(
   try {
     const user = await requireAuth();
     const { id } = await params;
-    const body = await request.json();
 
-    const existingSection = await getSectionById(id);
+    const existingSection = getSectionById(id);
     if (!existingSection) {
       return NextResponse.json({ error: "Section not found" }, { status: 404 });
     }
 
-    if (user.role !== "leader" && user.role !== "client") {
-      return NextResponse.json(
-        {
-          error: "Forbidden: Only leaders and clients can update sections",
-        },
-        { status: 403 },
-      );
+    const project = getProjectOrThrow(existingSection.projectId);
+    assertCanWriteProject(user, project);
+
+    const body = await parseJsonBody(request);
+    const result = sectionUpdateSchema.safeParse(body);
+    if (!result.success) {
+      return zodErrorResponse(result.error);
     }
 
-    const section = await updateSection(id, body);
+    const section = updateSectionFields(id, {
+      title: result.data.title,
+      order: result.data.order,
+    });
+
     return NextResponse.json({ section });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }
 
@@ -76,29 +82,26 @@ export async function DELETE(
 ) {
   try {
     const user = await requireAuth();
-
-    if (user.role !== "leader") {
-      return NextResponse.json(
-        { error: "Forbidden: Only leaders can delete sections" },
-        { status: 403 },
-      );
-    }
-
     const { id } = await params;
-    const success = await deleteSection(id);
 
-    if (!success) {
+    const existingSection = getSectionById(id);
+    if (!existingSection) {
       return NextResponse.json({ error: "Section not found" }, { status: 404 });
     }
 
+    const project = getProjectOrThrow(existingSection.projectId);
+    assertCanWriteProject(user, project);
+
+    const { deleted, attachments } = deleteSection(id);
+
+    if (!deleted) {
+      return NextResponse.json({ error: "Section not found" }, { status: 404 });
+    }
+
+    cleanupAttachmentFiles(attachments);
+
     return NextResponse.json({ success: true });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }

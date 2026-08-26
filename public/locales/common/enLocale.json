@@ -53,6 +53,7 @@
     "failedToUpdateSection": "Failed to update section",
     "failedToUpdateProjectOrder": "Failed to update project order",
     "failedToUpdateSectionOrder": "Failed to update section order",
+    "failedToUpdateTaskOrder": "Failed to update task order",
     "failedToMoveTask": "Failed to move task"
   },
   "footer": {

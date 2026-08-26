@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/app/api/auth/utilsAuth";
+import { getSession } from "@/lib/auth";
 import { Footer } from "@/components/layouts/footerLayout";
 import { Navbar } from "@/components/layouts/navbarLayout";
 

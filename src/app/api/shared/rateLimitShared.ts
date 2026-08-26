@@ -6,20 +6,39 @@ type RateLimitRecord = {
 };
 
 const store = new Map<string, RateLimitRecord>();
+const PRUNE_INTERVAL_MS = 60 * 1000;
+const MAX_ENTRIES = 10000;
 
-function getClientIp(request: NextRequest): string {
+function pruneExpiredEntries(): void {
+  const now = Date.now();
+  for (const [key, record] of store) {
+    if (now > record.resetTime) {
+      store.delete(key);
+    }
+  }
+
+  if (store.size > MAX_ENTRIES) {
+    store.clear();
+  }
+}
+
+setInterval(pruneExpiredEntries, PRUNE_INTERVAL_MS).unref();
+
+export function getClientIp(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for");
-  return forwarded?.split(",")[0]?.trim() || "unknown";
+  if (!forwarded) return "unknown";
+
+  const hops = forwarded.split(",").map((hop) => hop.trim());
+  return hops[hops.length - 1] || "unknown";
 }
 
 export function checkRateLimit(
-  request: NextRequest,
+  subject: string,
   keyPrefix: string,
   maxRequests: number,
   windowMs: number,
 ): { allowed: boolean; remaining: number; resetTime: number } {
-  const ip = getClientIp(request);
-  const key = `${keyPrefix}:${ip}`;
+  const key = `${keyPrefix}:${subject}`;
   const now = Date.now();
 
   const record = store.get(key);
@@ -39,4 +58,13 @@ export function checkRateLimit(
     remaining: maxRequests - record.count,
     resetTime: record.resetTime,
   };
+}
+
+export function checkRequestRateLimit(
+  request: NextRequest,
+  keyPrefix: string,
+  maxRequests: number,
+  windowMs: number,
+): { allowed: boolean; remaining: number; resetTime: number } {
+  return checkRateLimit(getClientIp(request), keyPrefix, maxRequests, windowMs);
 }

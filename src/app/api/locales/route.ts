@@ -1,17 +1,22 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
+import { promises as fs } from "fs";
 import path from "path";
 
 export const dynamic = "force-dynamic";
 
 const LOCALES_DIR = path.join(process.cwd(), "public", "locales");
 
-function getLocaleDirectories(dir: string, baseDir: string = ""): string[] {
-  if (!fs.existsSync(dir)) {
+async function getLocaleDirectories(
+  dir: string,
+  baseDir: string = "",
+): Promise<string[]> {
+  let entries;
+  try {
+    entries = await fs.readdir(dir, { withFileTypes: true });
+  } catch {
     return [];
   }
 
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
   let directories: string[] = [];
 
   for (const entry of entries) {
@@ -19,26 +24,41 @@ function getLocaleDirectories(dir: string, baseDir: string = ""): string[] {
     const relativePath = baseDir ? path.join(baseDir, entry.name) : entry.name;
 
     if (entry.isDirectory()) {
-      const hasLocaleFile =
-        fs.existsSync(path.join(fullPath, "enLocale.json")) ||
-        fs.existsSync(path.join(fullPath, "arLocale.json"));
+      const [hasEn, hasAr] = await Promise.all([
+        fileExists(path.join(fullPath, "enLocale.json")),
+        fileExists(path.join(fullPath, "arLocale.json")),
+      ]);
 
-      if (hasLocaleFile) {
+      if (hasEn || hasAr) {
         directories.push(relativePath.replace(/\\/g, "/"));
       }
 
       directories = directories.concat(
-        getLocaleDirectories(fullPath, relativePath),
+        await getLocaleDirectories(fullPath, relativePath),
       );
     }
   }
+
   return directories;
+}
+
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function GET() {
   try {
-    const paths = getLocaleDirectories(LOCALES_DIR);
-    return NextResponse.json(paths);
+    const paths = await getLocaleDirectories(LOCALES_DIR);
+    return NextResponse.json(paths, {
+      headers: {
+        "Cache-Control": "public, max-age=300",
+      },
+    });
   } catch (_error) {
     return NextResponse.json(
       { error: "Failed to scan locales" },

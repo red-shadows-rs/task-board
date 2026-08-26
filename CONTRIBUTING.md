@@ -43,7 +43,7 @@ Before submitting a bug report:
 Follow this format for commit messages:
 
 ```
-TaskBoard | vX.Y.Z | Brief description of changes
+task-board | vX.Y.Z | Brief description of changes
 ```
 
 ### Development Setup

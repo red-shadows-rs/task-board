@@ -1,0 +1,67 @@
+name: Bug report
+description: Report broken behaviour or unexpected output
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please fill in every section below.
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Runtime / browser / TaskBoard versions.
+      placeholder: |
+        TaskBoard version: e.g. 4.1.0
+        Node.js version (node -v): e.g. 22.x
+        npm version: e.g. 10.x
+        OS: e.g. Ubuntu 24.04 / Windows 11
+        Browser: e.g. Chrome 140 / Firefox
+        Deployment: dev / production build / Docker
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Paste the relevant server console output or browser console errors.
+      render: shell
+
+  - type: dropdown
+    id: role
+    attributes:
+      label: User role affected
+      options:
+        - leader
+        - member
+        - client
+        - all roles
+        - not related to roles

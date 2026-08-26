@@ -149,13 +149,10 @@ export function ProjectDetailPage({ user, projectId }: ProjectDetailPageProps) {
 
   const fetchSections = useCallback(async () => {
     try {
-      const response = await fetch("/api/sections");
+      const response = await fetch(`/api/sections?projectId=${projectId}`);
       if (response.ok) {
         const data = await response.json();
-        const projectSections = (data.sections || []).filter(
-          (section: Section) => section.projectId === projectId,
-        );
-        projectSections.sort(
+        const projectSections = (data.sections || []).sort(
           (a: Section, b: Section) => (a.order || 0) - (b.order || 0),
         );
         setSections(projectSections);
@@ -180,11 +177,7 @@ export function ProjectDetailPage({ user, projectId }: ProjectDetailPageProps) {
 
   const fetchTasks = useCallback(async () => {
     try {
-      const response = await fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId }),
-      });
+      const response = await fetch(`/api/tasks?projectId=${projectId}`);
       if (response.ok) {
         const data = await response.json();
         setTasks(data.tasks || []);
@@ -542,10 +535,13 @@ export function ProjectDetailPage({ user, projectId }: ProjectDetailPageProps) {
     if (!selectedTask) return;
 
     try {
+      const payload =
+        user.role === "member" ? { status: taskData.status } : taskData;
+
       const response = await fetch(`/api/tasks/${selectedTask.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(taskData),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
@@ -1028,6 +1024,7 @@ export function ProjectDetailPage({ user, projectId }: ProjectDetailPageProps) {
           <TaskDetailsDialog
             task={selectedTask}
             users={users}
+            currentUser={user}
             projects={[project]}
             sections={sections}
             open={isTaskDetailsDialogOpen}

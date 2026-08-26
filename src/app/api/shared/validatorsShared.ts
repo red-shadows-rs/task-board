@@ -1,76 +1,186 @@
 import { z } from "zod";
 
+const MAX_TEXT = 2000;
+const MAX_TITLE = 200;
+
+export const localizedTextSchema = z.object({
+  en: z.string().min(1).max(MAX_TEXT),
+  ar: z.string().min(1).max(MAX_TEXT),
+});
+
+export const orderSchema = z.number().int().min(0).max(1000000);
+
 export const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
-
-export const projectSchema = z.object({
-  title: z.object({
-    en: z.string().min(3, "English title must be at least 3 characters"),
-    ar: z.string().min(3, "Arabic title must be at least 3 characters"),
-  }),
-
-  startDate: z.string().optional().or(z.literal("")),
-  endDate: z.string().optional().or(z.literal("")),
-  status: z
-    .enum(["planning", "active", "completed", "on_hold"])
-    .default("planning"),
-  teamMembers: z.array(z.string()).default([]),
-  color: z.string().optional(),
-  order: z.number().optional(),
-});
-
-export const sectionSchema = z.object({
-  projectId: z.string(),
-  title: z.object({
-    en: z.string().min(3, "English title must be at least 3 characters"),
-    ar: z.string().min(3, "Arabic title must be at least 3 characters"),
-  }),
-  order: z.number().optional(),
+  email: z.string().email("Invalid email address").max(320),
+  password: z.string().min(1, "Password is required").max(72),
 });
 
 export const userCreateSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  name: z.string().min(2, "Name must be at least 2 characters").max(100),
+  email: z.string().email("Invalid email address").max(320),
+  password: z.string().min(8, "Password must be at least 8 characters").max(72),
   role: z.enum(["leader", "member", "client"]),
 });
 
-export const taskSchema = z.object({
-  sectionId: z.string(),
+export const userSelfUpdateSchema = z
+  .object({
+    name: z.string().min(2).max(100).optional(),
+    email: z.string().email("Invalid email address").max(320).optional(),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .max(72)
+      .optional(),
+    currentPassword: z.string().min(1).max(72).optional(),
+  })
+  .refine(
+    (data) => data.name || data.email || data.password,
+    "At least one field is required",
+  );
+
+export const userAdminUpdateSchema = z
+  .object({
+    name: z.string().min(2).max(100).optional(),
+    email: z.string().email("Invalid email address").max(320).optional(),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .max(72)
+      .optional(),
+    role: z.enum(["leader", "member", "client"]).optional(),
+    order: orderSchema.optional(),
+  })
+  .refine(
+    (data) =>
+      data.name ||
+      data.email ||
+      data.password ||
+      data.role ||
+      data.order !== undefined,
+    "At least one field is required",
+  );
+
+export const projectCreateSchema = z.object({
   title: z.object({
-    en: z.string().min(3, "Title must be at least 3 characters"),
-    ar: z.string().min(3, "Title must be at least 3 characters"),
+    en: z
+      .string()
+      .min(3, "English title must be at least 3 characters")
+      .max(MAX_TITLE),
+    ar: z
+      .string()
+      .min(3, "Arabic title must be at least 3 characters")
+      .max(MAX_TITLE),
   }),
-  description: z.object({
-    en: z.string().min(10, "Description must be at least 10 characters"),
-    ar: z.string().min(10, "Description must be at least 10 characters"),
+  startDate: z.string().max(100).optional().or(z.literal("")),
+  endDate: z.string().max(100).optional().or(z.literal("")),
+  status: z
+    .enum(["planning", "active", "completed", "on_hold"])
+    .default("planning"),
+  teamMembers: z.array(z.string().uuid()).max(100).default([]),
+  color: z.string().max(50).optional(),
+  order: orderSchema.optional(),
+});
+
+export const projectUpdateSchema = projectCreateSchema.partial().extend({
+  id: z.never().optional(),
+  createdBy: z.never().optional(),
+  createdAt: z.never().optional(),
+});
+
+export const sectionCreateSchema = z.object({
+  projectId: z.string().uuid("Invalid project id"),
+  title: z.object({
+    en: z
+      .string()
+      .min(3, "English title must be at least 3 characters")
+      .max(MAX_TITLE),
+    ar: z
+      .string()
+      .min(3, "Arabic title must be at least 3 characters")
+      .max(MAX_TITLE),
   }),
-  status: z.enum(["todo", "in_progress", "in_review", "done"]),
-  assignedTo: z.array(z.string()).default([]),
-  dueDate: z.string().optional().or(z.literal("")),
-  createdAt: z.string().optional().or(z.literal("")),
-  priority: z.enum(["low", "medium", "high", "urgent"]),
-  tags: z.array(z.string()).default([]),
-  order: z.number().optional(),
+  order: orderSchema.optional(),
+});
+
+export const sectionUpdateSchema = z.object({
+  title: z
+    .object({
+      en: z.string().min(3).max(MAX_TITLE),
+      ar: z.string().min(3).max(MAX_TITLE),
+    })
+    .optional(),
+  order: orderSchema.optional(),
+});
+
+export const taskCreateSchema = z.object({
+  sectionId: z.string().uuid("Invalid section id"),
+  title: localizedTextSchema,
+  description: localizedTextSchema,
+  status: z.enum(["todo", "in_progress", "in_review", "done"]).default("todo"),
+  assignedTo: z.array(z.string().uuid()).max(100).default([]),
+  dueDate: z.string().max(100).optional().or(z.literal("")),
+  priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
+  tags: z.array(z.string().max(50)).max(50).default([]),
+  order: orderSchema.optional(),
   attachments: z
     .array(
       z
         .string()
         .regex(
-          /^images\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+\.(webp|png|jpg|jpeg|gif|svg|bin)$/,
+          /^images\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.webp$/,
           "Invalid attachment path",
         ),
     )
+    .max(20)
     .default([]),
   assigneePrices: z
-    .array(z.object({ userId: z.string(), price: z.number().min(0) }))
+    .array(
+      z.object({
+        userId: z.string().uuid(),
+        price: z.number().min(0).max(1000000000),
+      }),
+    )
+    .max(100)
     .default([]),
 });
 
+export const taskUpdateSchema = taskCreateSchema.partial().extend({
+  id: z.never().optional(),
+  sectionId: z.string().uuid().optional(),
+});
+
+export const taskAssigneeUpdateSchema = z.object({
+  assigneePrices: z
+    .array(
+      z.object({
+        userId: z.string().uuid(),
+        price: z.number().min(0).max(1000000000),
+      }),
+    )
+    .max(100),
+});
+
+export const reorderItemSchema = z.object({
+  id: z.string().uuid(),
+  order: orderSchema,
+  sectionId: z.string().uuid().optional(),
+});
+
+export const reorderBodySchema = z.object({
+  updates: z.array(reorderItemSchema).min(1).max(1000),
+});
+
+export const userReorderItemSchema = z.object({
+  id: z.string().uuid(),
+  order: orderSchema,
+});
+
+export const userReorderBodySchema = z.object({
+  updates: z.array(userReorderItemSchema).min(1).max(1000),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
-export type ProjectInput = z.infer<typeof projectSchema>;
-export type SectionInput = z.infer<typeof sectionSchema>;
-export type TaskInput = z.infer<typeof taskSchema>;
 export type UserCreateInput = z.infer<typeof userCreateSchema>;
+export type ProjectInput = z.infer<typeof projectCreateSchema>;
+export type SectionInput = z.infer<typeof sectionCreateSchema>;
+export type TaskInput = z.infer<typeof taskCreateSchema>;

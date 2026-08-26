@@ -193,7 +193,7 @@ interface TaskData {
 interface UserData {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   role: string;
 }
 
@@ -1336,8 +1336,7 @@ export const exportTaskPDF = async (
             "FAST",
           );
           y += imgH + 10;
-        } catch (_e) {
-        }
+        } catch (_e) {}
       }
     }
   }

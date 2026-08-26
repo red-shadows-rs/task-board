@@ -1,26 +1,47 @@
 import { NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
 
-import { requireAuth } from "@/app/api/auth/utilsAuth";
+import { getProjectOrThrow, isLeader, requireAuth } from "@/lib/auth";
 import {
-  getTaskById,
-  updateTask,
+  cleanupAttachmentFiles,
   deleteTask,
-} from "@/app/api/shared/databaseShared";
-import { taskSchema } from "@/app/api/shared/validatorsShared";
+  getSectionById,
+  getTaskById,
+  updateTaskFields,
+} from "@/lib/db";
+import {
+  HttpError,
+  errorResponse,
+  parseJsonBody,
+  zodErrorResponse,
+} from "@/app/api/shared/responseShared";
+import { taskUpdateSchema } from "@/app/api/shared/validatorsShared";
 
 import type { NextRequest } from "next/server";
+import type { Task, User } from "@/types";
 
-function isPathInside(target: string, base: string): boolean {
-  const resolvedTarget = path.resolve(target);
-  const resolvedBase = path.resolve(base);
-  const relative = path.relative(resolvedBase, resolvedTarget);
-  return (
-    !relative.startsWith("..") &&
-    !path.isAbsolute(relative) &&
-    resolvedTarget.startsWith(resolvedBase + path.sep)
-  );
+function assertCanReadTask(user: User, task: Task): void {
+  if (isLeader(user)) return;
+
+  const project = getProjectOrThrow(getTaskProjectIdOrThrow(task));
+
+  if (user.role === "client") {
+    if (!project.teamMembers.includes(user.id)) {
+      throw new HttpError(403, "Forbidden");
+    }
+    return;
+  }
+
+  if (!task.assignedTo.includes(user.id)) {
+    throw new HttpError(403, "Forbidden");
+  }
+}
+
+function getTaskProjectIdOrThrow(task: Task): string {
+  const section = getSectionById(task.sectionId);
+  if (!section) {
+    throw new HttpError(404, "Section not found");
+  }
+  return section.projectId;
 }
 
 export async function GET(
@@ -28,23 +49,24 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireAuth();
+    const user = await requireAuth();
     const { id } = await params;
-    const task = await getTaskById(id);
+    const task = getTaskById(id);
 
     if (!task) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ task });
+    assertCanReadTask(user, task);
+
+    return NextResponse.json({
+      task:
+        isLeader(user) || !task.assigneePrices?.length
+          ? task
+          : { ...task, assigneePrices: [] },
+    });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }
 
@@ -55,57 +77,100 @@ export async function PATCH(
   try {
     const user = await requireAuth();
     const { id } = await params;
-    const body = await request.json();
 
-    if (user.role !== "leader") {
-      delete body.assigneePrices;
+    const existingTask = getTaskById(id);
+    if (!existingTask) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    const result = taskSchema.partial().safeParse(body);
+    const project = getProjectOrThrow(getTaskProjectIdOrThrow(existingTask));
+    const body = await parseJsonBody(request);
+
+    if (user.role === "member") {
+      if (!existingTask.assignedTo.includes(user.id)) {
+        throw new HttpError(403, "Forbidden");
+      }
+
+      const allowedKeys = ["status"];
+      if (Object.keys(body).some((key) => !allowedKeys.includes(key))) {
+        throw new HttpError(403, "Members can only update task status");
+      }
+
+      const result = taskUpdateSchema.safeParse(body);
+      if (!result.success) {
+        return zodErrorResponse(result.error);
+      }
+
+      if (result.data.status === "done") {
+        throw new HttpError(403, "Only leaders and clients can complete tasks");
+      }
+
+      const { task, removedAttachments } = updateTaskFields(id, {
+        status: result.data.status,
+      });
+      cleanupAttachmentFiles(removedAttachments);
+
+      if (!task) {
+        return NextResponse.json({ error: "Task not found" }, { status: 404 });
+      }
+
+      return NextResponse.json({
+        task: task.assigneePrices?.length
+          ? { ...task, assigneePrices: [] }
+          : task,
+      });
+    }
+
+    if (user.role === "client" && !project.teamMembers.includes(user.id)) {
+      throw new HttpError(403, "Forbidden");
+    }
+
+    const result = taskUpdateSchema.safeParse(body);
     if (!result.success) {
-      return NextResponse.json(
-        { error: "Invalid input", details: result.error.errors },
-        { status: 400 },
-      );
+      return zodErrorResponse(result.error);
     }
 
-    if (result.data.attachments) {
-      const oldTask = await getTaskById(id);
-      if (oldTask && oldTask.attachments) {
-        const oldAttachments = oldTask.attachments;
-        const newAttachments = result.data.attachments;
-        const removedAttachments = oldAttachments.filter(
-          (path) => !newAttachments.includes(path),
-        );
+    const updates = { ...result.data };
 
-        if (removedAttachments.length > 0) {
-          const publicDir = path.join(process.cwd(), "public");
-          for (const attachment of removedAttachments) {
-            const imageFullPath = path.join(publicDir, attachment);
-            if (!isPathInside(imageFullPath, publicDir)) continue;
-            try {
-              await fs.unlink(imageFullPath);
-            } catch (_error) {}
-          }
+    if (user.role === "client") {
+      delete updates.assigneePrices;
+      if (updates.sectionId) {
+        const targetSection = getSectionById(updates.sectionId);
+        if (!targetSection || targetSection.projectId !== project.id) {
+          throw new HttpError(400, "Target section is outside this project");
         }
       }
     }
 
-    const task = await updateTask(id, result.data);
+    const { task, removedAttachments } = updateTaskFields(id, {
+      sectionId: updates.sectionId,
+      title: updates.title,
+      description: updates.description,
+      status: updates.status,
+      assignedTo: updates.assignedTo,
+      dueDate: updates.dueDate,
+      priority: updates.priority,
+      tags: updates.tags,
+      order: updates.order,
+      attachments: updates.attachments,
+      assigneePrices:
+        user.role === "leader" ? updates.assigneePrices : undefined,
+    });
 
     if (!task) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ task });
+    cleanupAttachmentFiles(removedAttachments);
+
+    return NextResponse.json({
+      task:
+        isLeader(user) || !task.assigneePrices?.length
+          ? task
+          : { ...task, assigneePrices: [] },
+    });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }
 
@@ -114,49 +179,34 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireAuth();
+    const user = await requireAuth();
     const { id } = await params;
 
-    const task = await getTaskById(id);
-    if (task && task.attachments && task.attachments.length > 0) {
-      const publicDir = path.join(process.cwd(), "public");
-
-      for (const attachment of task.attachments) {
-        const imageFullPath = path.join(publicDir, attachment);
-        if (!isPathInside(imageFullPath, publicDir)) continue;
-        try {
-          await fs.unlink(imageFullPath);
-        } catch (_error) {}
-      }
-
-      try {
-        const firstImagePath = task.attachments[0];
-        if (firstImagePath) {
-          const taskDir = path.dirname(path.join(publicDir, firstImagePath));
-          if (!isPathInside(taskDir, publicDir))
-            throw new Error("Invalid path");
-          const files = await fs.readdir(taskDir);
-          if (files.length === 0) {
-            await fs.rmdir(taskDir);
-          }
-        }
-      } catch (_error) {}
-    }
-
-    const success = await deleteTask(id);
-
-    if (!success) {
+    const task = getTaskById(id);
+    if (!task) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
+    const project = getProjectOrThrow(getTaskProjectIdOrThrow(task));
+
+    if (user.role === "member") {
+      throw new HttpError(403, "Forbidden");
+    }
+
+    if (!isLeader(user) && !project.teamMembers.includes(user.id)) {
+      throw new HttpError(403, "Forbidden");
+    }
+
+    const { deleted, attachments } = deleteTask(id);
+
+    if (!deleted) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+
+    cleanupAttachmentFiles(attachments);
+
     return NextResponse.json({ success: true });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }

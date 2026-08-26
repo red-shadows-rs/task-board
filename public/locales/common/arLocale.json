@@ -53,6 +53,7 @@
     "failedToUpdateSection": "فشل تحديث القسم",
     "failedToUpdateProjectOrder": "فشل تحديث ترتيب المشروع",
     "failedToUpdateSectionOrder": "فشل تحديث ترتيب القسم",
+    "failedToUpdateTaskOrder": "فشل تحديث ترتيب المهمة",
     "failedToMoveTask": "فشل نقل المهمة"
   },
   "footer": {

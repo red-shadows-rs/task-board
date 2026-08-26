@@ -4,12 +4,14 @@ import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import sharp from "sharp";
 
-import { requireAuth } from "@/app/api/auth/utilsAuth";
+import { getProjectOrThrow, isLeader, requireAuth } from "@/lib/auth";
 import {
-  getTaskById,
-  updateTask,
   getSectionById,
-} from "@/app/api/shared/databaseShared";
+  getTaskById,
+  isPathInsidePublicImages,
+  updateTaskFields,
+} from "@/lib/db";
+import { HttpError, errorResponse } from "@/app/api/shared/responseShared";
 import { checkRateLimit } from "@/app/api/shared/rateLimitShared";
 
 import type { NextRequest } from "next/server";
@@ -19,7 +21,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const rateLimit = checkRateLimit(request, "upload", 10, 60 * 1000);
+    const user = await requireAuth();
+
+    const rateLimit = checkRateLimit(user.id, "upload", 10, 60 * 1000);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: "Too many upload attempts. Please try again later." },
@@ -27,12 +31,25 @@ export async function POST(
       );
     }
 
-    await requireAuth();
     const { id: taskId } = await params;
 
-    const task = await getTaskById(taskId);
+    const task = getTaskById(taskId);
     if (!task) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+
+    const section = getSectionById(task.sectionId);
+    if (!section) {
+      return NextResponse.json({ error: "Section not found" }, { status: 404 });
+    }
+
+    const project = getProjectOrThrow(section.projectId);
+
+    if (
+      !isLeader(user) &&
+      !(user.role === "client" && project.teamMembers.includes(user.id))
+    ) {
+      throw new HttpError(403, "Forbidden");
     }
 
     const formData = await request.formData();
@@ -79,11 +96,6 @@ export async function POST(
       }
     }
 
-    const section = await getSectionById(task.sectionId);
-    if (!section) {
-      return NextResponse.json({ error: "Section not found" }, { status: 404 });
-    }
-
     const publicDir = path.join(process.cwd(), "public");
     const imagesDir = path.join(
       publicDir,
@@ -92,30 +104,40 @@ export async function POST(
       task.sectionId,
     );
 
+    if (!isPathInsidePublicImages(imagesDir)) {
+      throw new HttpError(400, "Invalid image path");
+    }
+
     await fs.mkdir(imagesDir, { recursive: true });
 
     const currentAttachments = task.attachments || [];
-
     const newAttachments: string[] = [];
 
     for (const file of files) {
       const fileUuid = uuidv4();
-      const isImage = file.type.startsWith("image/");
-      const extension = isImage ? "webp" : file.name.split(".").pop() || "bin";
-      const filename = `${fileUuid}.${extension}`;
+      const filename = `${fileUuid}.webp`;
 
       const relativePath = path
         .join("images", section.projectId, task.sectionId, filename)
         .replace(/\\/g, "/");
       const fullPath = path.join(imagesDir, filename);
 
-      const fileBuffer = Buffer.from(new Uint8Array(await file.arrayBuffer()));
-      let buffer: Buffer = fileBuffer;
+      if (!isPathInsidePublicImages(fullPath)) {
+        throw new HttpError(400, "Invalid image path");
+      }
 
-      if (isImage) {
+      const fileBuffer = Buffer.from(new Uint8Array(await file.arrayBuffer()));
+      let buffer: Buffer;
+
+      try {
         buffer = await sharp(fileBuffer)
           .webp({ quality: 90, effort: 6 })
           .toBuffer();
+      } catch {
+        return NextResponse.json(
+          { error: "Could not process image file" },
+          { status: 400 },
+        );
       }
 
       await fs.writeFile(fullPath, buffer);
@@ -124,18 +146,12 @@ export async function POST(
 
     const updatedAttachments = [...currentAttachments, ...newAttachments];
 
-    const updatedTask = await updateTask(taskId, {
+    const { task: updatedTask } = updateTaskFields(taskId, {
       attachments: updatedAttachments,
     });
 
     return NextResponse.json({ task: updatedTask });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }

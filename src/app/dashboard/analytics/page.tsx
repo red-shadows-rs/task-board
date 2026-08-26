@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { getSession } from "@/app/api/auth/utilsAuth";
+import { getSession } from "@/lib/auth";
 import AnalyticsPage from "@/components/pages/analyticsPage";
 
 export const dynamic = "force-dynamic";
@@ -14,5 +14,5 @@ export default async function Analytics() {
   if (user.role === "client") {
     redirect("/dashboard/projects");
   }
-  return <AnalyticsPage user={user} />;
+  return <AnalyticsPage />;
 }

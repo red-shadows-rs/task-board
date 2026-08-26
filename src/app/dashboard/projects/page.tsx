@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { getSession } from "@/app/api/auth/utilsAuth";
+import { getSession } from "@/lib/auth";
 import { ProjectsPage } from "@/components/pages/projectsPage";
 
 export const dynamic = "force-dynamic";

@@ -1,41 +1,58 @@
 import { NextResponse } from "next/server";
 
 import {
-  requireAuth,
   hashPassword,
+  requireAuth,
+  requireLeader,
   verifyPassword,
-} from "@/app/api/auth/utilsAuth";
+} from "@/lib/auth";
 import {
-  getUserById,
-  updateUser,
+  countLeaders,
   deleteUser,
-} from "@/app/api/shared/databaseShared";
+  getAuthUserById,
+  getUserById,
+  updateUserFields,
+  UniqueConstraintError,
+} from "@/lib/db";
+import {
+  HttpError,
+  errorResponse,
+  parseJsonBody,
+  zodErrorResponse,
+} from "@/app/api/shared/responseShared";
+import {
+  userAdminUpdateSchema,
+  userSelfUpdateSchema,
+} from "@/app/api/shared/validatorsShared";
 
 import type { NextRequest } from "next/server";
+import type { User } from "@/types";
+
+function stripPassword(user: User): Omit<User, "password"> {
+  const { password: _password, ...rest } = user as User & { password?: string };
+  return rest;
+}
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireAuth();
+    const currentUser = await requireAuth();
     const { id } = await params;
-    const user = await getUserById(id);
+    const user = getUserById(id);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const { password: _password, ...userWithoutPassword } = user;
-    return NextResponse.json({ user: userWithoutPassword });
+    if (currentUser.role !== "leader" && currentUser.id !== id) {
+      throw new HttpError(403, "Forbidden");
+    }
+
+    return NextResponse.json({ user: stripPassword(user) });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }
 
@@ -46,53 +63,96 @@ export async function PATCH(
   try {
     const currentUser = await requireAuth();
     const { id } = await params;
-    const body = await request.json();
+    const isSelf = currentUser.id === id;
+    const body = await parseJsonBody(request);
 
-    if (currentUser.id !== id && currentUser.role !== "leader") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const updates: Record<string, unknown> = { ...body };
-
-    if (body.password) {
-      const user = await getUserById(id);
-      if (!user) {
-        return NextResponse.json({ error: "User not found" }, { status: 404 });
-      }
-
-      if (body.currentPassword) {
-        const isValid = await verifyPassword(
-          body.currentPassword,
-          user.password,
-        );
-        if (!isValid) {
-          return NextResponse.json(
-            { error: "Current password is incorrect" },
-            { status: 400 },
-          );
-        }
-      }
-
-      updates.password = await hashPassword(body.password);
-      delete updates.currentPassword;
-    }
-
-    const user = await updateUser(id, updates);
-
-    if (!user) {
+    const target = getAuthUserById(id);
+    if (!target) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const { password: _password2, ...userWithoutPassword } = user;
-    return NextResponse.json({ user: userWithoutPassword });
+    if (isSelf) {
+      const result = userSelfUpdateSchema.safeParse(body);
+      if (!result.success) {
+        return zodErrorResponse(result.error);
+      }
+
+      const { name, email, password, currentPassword } = result.data;
+
+      if (password) {
+        if (!currentPassword) {
+          throw new HttpError(400, "Current password is required");
+        }
+        const isValid = await verifyPassword(
+          currentPassword,
+          target.passwordHash,
+        );
+        if (!isValid) {
+          throw new HttpError(400, "Current password is incorrect");
+        }
+      }
+
+      let updated;
+      try {
+        updated = updateUserFields(id, {
+          name,
+          email: email ? email.toLowerCase() : undefined,
+          passwordHash: password ? await hashPassword(password) : undefined,
+          passwordChanged: Boolean(password),
+        });
+      } catch (error) {
+        if (error instanceof UniqueConstraintError) {
+          throw new HttpError(409, "A user with this email already exists");
+        }
+        throw error;
+      }
+
+      if (!updated) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+
+      return NextResponse.json({ user: stripPassword(updated) });
+    }
+
+    await requireLeader();
+
+    const result = userAdminUpdateSchema.safeParse(body);
+    if (!result.success) {
+      return zodErrorResponse(result.error);
+    }
+
+    const { name, email, password, role, order } = result.data;
+
+    if (role && role !== target.role && target.role === "leader") {
+      if (countLeaders() <= 1) {
+        throw new HttpError(400, "Cannot change the role of the last leader");
+      }
+    }
+
+    let updated;
+    try {
+      updated = updateUserFields(id, {
+        name,
+        email: email ? email.toLowerCase() : undefined,
+        passwordHash: password ? await hashPassword(password) : undefined,
+        passwordChanged: Boolean(password),
+        role,
+        order,
+      });
+    } catch (error) {
+      if (error instanceof UniqueConstraintError) {
+        throw new HttpError(409, "A user with this email already exists");
+      }
+      throw error;
+    }
+
+    if (!updated) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ user: stripPassword(updated) });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }
 
@@ -101,30 +161,26 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const currentUser = await requireAuth();
+    const currentUser = await requireLeader();
     const { id } = await params;
 
-    if (currentUser.role !== "leader") {
-      return NextResponse.json(
-        { error: "Forbidden: Only leaders can delete users" },
-        { status: 403 },
-      );
+    if (currentUser.id === id) {
+      throw new HttpError(400, "You cannot delete your own account");
     }
 
-    const success = await deleteUser(id);
-
-    if (!success) {
+    const target = getAuthUserById(id);
+    if (!target) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    if (target.role === "leader" && countLeaders() <= 1) {
+      throw new HttpError(400, "Cannot delete the last leader");
+    }
+
+    deleteUser(id);
+
     return NextResponse.json({ success: true });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }

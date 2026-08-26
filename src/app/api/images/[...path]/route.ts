@@ -2,7 +2,15 @@ import { promises as fs } from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 
-import { requireAuth } from "@/app/api/auth/utilsAuth";
+import { requireAuth } from "@/lib/auth";
+
+const CONTENT_TYPES: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+};
 
 export async function GET(
   _request: NextRequest,
@@ -19,39 +27,29 @@ export async function GET(
       return new NextResponse("Forbidden", { status: 403 });
     }
 
+    let stats;
     try {
-      await fs.access(filePath);
+      stats = await fs.stat(filePath);
     } catch {
       return new NextResponse("File not found", { status: 404 });
     }
 
-    const fileBuffer = await fs.readFile(filePath);
-    const ext = path.extname(filePath).toLowerCase();
-    let contentType = "application/octet-stream";
-
-    switch (ext) {
-      case ".png":
-        contentType = "image/png";
-        break;
-      case ".jpg":
-      case ".jpeg":
-        contentType = "image/jpeg";
-        break;
-      case ".gif":
-        contentType = "image/gif";
-        break;
-      case ".svg":
-        contentType = "image/svg+xml";
-        break;
-      case ".webp":
-        contentType = "image/webp";
-        break;
+    if (!stats.isFile()) {
+      return new NextResponse("File not found", { status: 404 });
     }
+
+    const ext = path.extname(filePath).toLowerCase();
+    const contentType = CONTENT_TYPES[ext];
+    if (!contentType) {
+      return new NextResponse("File not found", { status: 404 });
+    }
+
+    const fileBuffer = await fs.readFile(filePath);
 
     return new NextResponse(fileBuffer, {
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=31536000, immutable",
+        "Cache-Control": "private, max-age=3600",
       },
     });
   } catch (_error) {

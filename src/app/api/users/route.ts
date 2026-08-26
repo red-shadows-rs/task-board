@@ -1,69 +1,110 @@
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 
+import { hashPassword, requireAuth, requireLeader } from "@/lib/auth";
 import {
-  hashPassword,
-  requireAuth,
-  requireLeaderOrClient,
-} from "@/app/api/auth/utilsAuth";
-import { getUsers, createUser } from "@/app/api/shared/databaseShared";
+  countUsers,
+  createUser,
+  listUsers,
+  listRelatedUsers,
+  UniqueConstraintError,
+} from "@/lib/db";
+import {
+  HttpError,
+  errorResponse,
+  parseJsonBody,
+  zodErrorResponse,
+} from "@/app/api/shared/responseShared";
+import { checkRequestRateLimit } from "@/app/api/shared/rateLimitShared";
 import { userCreateSchema } from "@/app/api/shared/validatorsShared";
 
 import type { NextRequest } from "next/server";
+import type { User } from "@/types";
+
+function stripPassword(user: User): Omit<User, "password"> {
+  const { password: _password, ...rest } = user as User & { password?: string };
+  return rest;
+}
+
+function stripEmail(user: User): Omit<User, "password"> {
+  const {
+    password: _password,
+    email: _email,
+    ...rest
+  } = user as User & { password?: string };
+  return rest;
+}
 
 export async function GET() {
   try {
-    await requireAuth();
-    const users = await getUsers();
+    const currentUser = await requireAuth();
 
-    const usersWithoutPasswords = users.map(
-      ({ password: _password, ...user }) => user,
-    );
-    return NextResponse.json({ users: usersWithoutPasswords });
+    let visible: User[];
+    if (currentUser.role === "leader") {
+      visible = listUsers();
+      return NextResponse.json({
+        users: visible.map(stripPassword),
+      });
+    }
+
+    visible = listRelatedUsers(currentUser.id);
+    return NextResponse.json({
+      users: visible.map(stripEmail),
+    });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    await requireLeaderOrClient();
-    const body = await request.json();
+    const isBootstrap = countUsers() === 0;
 
-    const result = userCreateSchema.safeParse(body);
-    if (!result.success) {
-      return NextResponse.json(
-        { error: "Invalid input", details: result.error.errors },
-        { status: 400 },
+    if (!isBootstrap) {
+      const rateLimit = checkRequestRateLimit(
+        request,
+        "user-create",
+        20,
+        60 * 1000,
       );
+      if (!rateLimit.allowed) {
+        return NextResponse.json(
+          { error: "Too many requests. Please try again later." },
+          { status: 429 },
+        );
+      }
+      await requireLeader();
     }
 
-    const { name, email, password, role } = result.data;
+    const body = await parseJsonBody(request);
+    const result = userCreateSchema.safeParse(body);
+    if (!result.success) {
+      return zodErrorResponse(result.error);
+    }
+
+    const { name, email, password } = result.data;
+    const role = isBootstrap ? "leader" : result.data.role;
+
     const hashedPassword = await hashPassword(password);
 
-    const user = await createUser({
-      id: uuidv4(),
-      name,
-      email: email.toLowerCase(),
-      password: hashedPassword,
-      role,
-    });
+    let user: User;
+    try {
+      user = createUser({
+        id: uuidv4(),
+        name,
+        email: email.toLowerCase(),
+        passwordHash: hashedPassword,
+        role,
+      });
+    } catch (error) {
+      if (error instanceof UniqueConstraintError) {
+        throw new HttpError(409, "A user with this email already exists");
+      }
+      throw error;
+    }
 
-    const { password: _password, ...userWithoutPassword } = user;
-    return NextResponse.json({ user: userWithoutPassword }, { status: 201 });
+    return NextResponse.json({ user: stripPassword(user) }, { status: 201 });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }

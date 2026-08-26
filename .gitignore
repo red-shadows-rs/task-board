@@ -27,6 +27,7 @@ yarn-error.log*
 *.swo
 *~
 .kilo/
+.playwright-mcp/
 
 # OS
 .DS_Store
@@ -41,3 +42,8 @@ next-env.d.ts
 
 # Testing
 coverage/
+
+# Runtime data
+data/
+public/images/*
+!public/images/.gitkeep

@@ -4,11 +4,15 @@ import { useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 
 import { PageTitle } from "@/components/common/titleCommon";
-import { MembersManagement } from "@/components/pages/membersPage";
+import {
+  MembersManagement,
+  type MemberInput,
+  type MemberUpdates,
+} from "@/components/pages/membersPage";
 import { useLanguage } from "@/contexts/languageContext";
 import { useStore } from "@/contexts/storeContext";
 
-import type { User, UserRole } from "@/types";
+import type { User } from "@/types";
 
 interface TeamMembersProps {
   user: User;
@@ -35,7 +39,7 @@ export function TeamMembers({ user }: TeamMembersProps) {
   }, [fetchUsers]);
 
   const handleAddMember = useCallback(
-    async (member: Omit<User, "id">) => {
+    async (member: MemberInput): Promise<boolean> => {
       try {
         const response = await fetch("/api/users", {
           method: "POST",
@@ -46,18 +50,24 @@ export function TeamMembers({ user }: TeamMembersProps) {
         if (response.ok) {
           await fetchUsers();
           toast.success(t("dashboard.team.messages.success.added"));
-        } else {
-          toast.error(t("dashboard.team.messages.error.addFailed"));
+          return true;
         }
+
+        const data = await response.json().catch(() => null);
+        toast.error(
+          data?.error || t("dashboard.team.messages.error.addFailed"),
+        );
+        return false;
       } catch (_error) {
         toast.error(t("dashboard.team.messages.error.addFailed"));
+        return false;
       }
     },
     [fetchUsers, t],
   );
 
   const handleUpdateMember = useCallback(
-    async (id: string, updates: Partial<User>) => {
+    async (id: string, updates: MemberUpdates): Promise<boolean> => {
       try {
         const response = await fetch(`/api/users/${id}`, {
           method: "PATCH",
@@ -68,11 +78,17 @@ export function TeamMembers({ user }: TeamMembersProps) {
         if (response.ok) {
           await fetchUsers();
           toast.success(t("dashboard.team.messages.success.updated"));
-        } else {
-          toast.error(t("dashboard.team.messages.error.updateFailed"));
+          return true;
         }
+
+        const data = await response.json().catch(() => null);
+        toast.error(
+          data?.error || t("dashboard.team.messages.error.updateFailed"),
+        );
+        return false;
       } catch (_error) {
         toast.error(t("dashboard.team.messages.error.updateFailed"));
+        return false;
       }
     },
     [fetchUsers, t],
@@ -99,7 +115,7 @@ export function TeamMembers({ user }: TeamMembersProps) {
   );
 
   const handleReorderMembers = useCallback(
-    async (updates: { id: string; order: number; role?: UserRole }[]) => {
+    async (updates: { id: string; order: number }[]) => {
       try {
         const response = await fetch("/api/users/reorder", {
           method: "POST",

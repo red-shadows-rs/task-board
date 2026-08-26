@@ -34,13 +34,9 @@ import {
   SelectItem,
 } from "@/components/ui/selectUi";
 
-import type { User, Task, Project, Section } from "@/types";
+import type { Task, Project, Section, User } from "@/types";
 
 type DateRange = "1d" | "7d" | "30d" | "90d" | "all";
-
-interface AnalyticsProps {
-  user: User;
-}
 
 const DATE_RANGE_DAYS: Record<Exclude<DateRange, "all">, number> = {
   "1d": 1,
@@ -58,7 +54,7 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
-export default function Analytics({ user }: AnalyticsProps) {
+export default function Analytics() {
   const { t, language } = useLanguage();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -140,7 +136,7 @@ export default function Analytics({ user }: AnalyticsProps) {
       });
       toast.success(t("dashboard.analytics.messages.success.exported"));
     } catch {
-      toast.error(t("dashboard.analytics.messages.error.fetchFailed"));
+      toast.error(t("dashboard.analytics.messages.error.exportFailed"));
     }
   }, [
     filteredTasks,
@@ -163,14 +159,7 @@ export default function Analytics({ user }: AnalyticsProps) {
 
       if (tasksRes.ok) {
         const tasksData = await tasksRes.json();
-        let fetchedTasks: Task[] = tasksData.tasks || [];
-
-        if (user.role === "member" || user.role === "leader") {
-          fetchedTasks = fetchedTasks.filter((task) =>
-            task.assignedTo.includes(user.id),
-          );
-        }
-        setTasks(fetchedTasks);
+        setTasks(tasksData.tasks || []);
       }
 
       if (projectsRes.ok) {
@@ -192,7 +181,7 @@ export default function Analytics({ user }: AnalyticsProps) {
     } catch {
       toast.error(t("dashboard.analytics.messages.error.fetchFailed"));
     }
-  }, [t, user.id, user.role]);
+  }, [t]);
 
   useEffect(() => {
     fetchData();

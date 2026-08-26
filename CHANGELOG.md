@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.1.0] - 2026-08-26
+
+### Added
+
+- **SQLite storage** via `better-sqlite3`, replacing the JSON file database; data now lives in `data/taskboard.db`
+- **Bootstrap leader** — the first user created on an empty database is auto-promoted to leader
+- **Server-enforced role-based access** on every API route (leader / member / client)
+- **Session hardening** — HMAC-signed httpOnly sessions, invalidation on password change, `SESSION_SECRET` required
+
+### Changed
+
+- **Members** can only view and update status on tasks assigned to them; prices are hidden
+- **Clients** scoped to their own projects; cannot delete tasks or change assignee pricing
+- **Price data** (`assigneePrices`) stripped from all non-leader API responses
+- **Task fetch** on the project detail page now uses `GET /api/tasks?projectId=…` instead of a `POST`-as-query hack
+- **Member edit dialog** keeps password in separate draft state instead of binding to the user object
+
+### Fixed
+
+- Members could previously delete tasks and sections via the API
+- Passwords were sent in plain user payloads on member update
+
+### Security
+
+- Rate limiting on login and user creation, security headers, and XSS sanitization retained
+
+---
+
 ## [4.0.6] - 2026-05-15
 
 ### Changed

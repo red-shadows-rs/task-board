@@ -58,7 +58,8 @@
       "exported": "Report exported successfully"
     },
     "error": {
-      "fetchFailed": "Failed to load analytics data"
+      "fetchFailed": "Failed to load analytics data",
+      "exportFailed": "Failed to export report"
     }
   },
   "financial": {

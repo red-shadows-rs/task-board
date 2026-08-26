@@ -1,30 +1,66 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/app/api/auth/utilsAuth";
-import { reorderTasks } from "@/app/api/shared/databaseShared";
+
+import { getProjectOrThrow, isLeader, requireAuth } from "@/lib/auth";
+import { getSectionById, getTaskById, reorderTasks } from "@/lib/db";
+import {
+  HttpError,
+  errorResponse,
+  parseJsonBody,
+  zodErrorResponse,
+} from "@/app/api/shared/responseShared";
+import { reorderBodySchema } from "@/app/api/shared/validatorsShared";
 
 export async function POST(request: Request) {
   try {
-    await requireAuth();
-    const body = await request.json();
-    const { updates } = body;
+    const user = await requireAuth();
 
-    if (!Array.isArray(updates)) {
-      return NextResponse.json(
-        { error: "Invalid updates format" },
-        { status: 400 },
-      );
+    if (user.role === "member") {
+      throw new HttpError(403, "Forbidden");
     }
 
-    await reorderTasks(updates);
+    const body = await parseJsonBody(request);
+    const result = reorderBodySchema.safeParse(body);
+    if (!result.success) {
+      return zodErrorResponse(result.error);
+    }
+
+    const updates = result.data.updates.map((update) => {
+      const task = getTaskById(update.id);
+      if (!task) {
+        throw new HttpError(404, "Task not found");
+      }
+
+      const taskSection = getSectionById(task.sectionId);
+      if (!taskSection) {
+        throw new HttpError(404, "Section not found");
+      }
+      const taskProject = getProjectOrThrow(taskSection.projectId);
+
+      if (!isLeader(user) && !taskProject.teamMembers.includes(user.id)) {
+        throw new HttpError(403, "Forbidden");
+      }
+
+      if (update.sectionId) {
+        const targetSection = getSectionById(update.sectionId);
+        if (!targetSection) {
+          throw new HttpError(404, "Target section not found");
+        }
+        if (!isLeader(user) && targetSection.projectId !== taskProject.id) {
+          throw new HttpError(400, "Target section is outside this project");
+        }
+      }
+
+      return {
+        id: update.id,
+        order: update.order,
+        sectionId: update.sectionId,
+      };
+    });
+
+    reorderTasks(updates);
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    const status =
-      error instanceof Error && error.message === "Unauthorized"
-        ? 401
-        : error instanceof Error && error.message.includes("Forbidden")
-          ? 403
-          : 500;
-    return NextResponse.json({ error: "Internal server error" }, { status });
+    return errorResponse(error);
   }
 }

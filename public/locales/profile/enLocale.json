@@ -26,7 +26,8 @@
       "passwordMismatch": "Passwords do not match",
       "nameTooShort": "Name must be at least 2 characters",
       "passwordTooShort": "Password must be at least 6 characters",
-      "currentPasswordRequired": "Current password is required"
+      "currentPasswordRequired": "Current password is required",
+      "currentPasswordIncorrect": "Current password is incorrect"
     }
   }
 }

@@ -7,8 +7,7 @@ export type Language = "en" | "ar";
 export interface User {
   id: string;
   name: string;
-  email: string;
-  password: string;
+  email?: string;
   role: UserRole;
   order?: number;
 }
@@ -71,12 +70,9 @@ export interface AppState {
   users: User[];
   projects: Project[];
   tasks: Task[];
-  filteredSections: Section[];
   filteredProjects: Project[];
-  filteredTasks: Task[];
   searchQuery: string;
   statusFilter: string;
-  viewMode: "kanban" | "list" | "calendar";
 
   setUser: (user: User | null) => void;
   setSections: (sections: Section[]) => void;
@@ -85,7 +81,6 @@ export interface AppState {
   setTasks: (tasks: Task[]) => void;
   setSearchQuery: (query: string) => void;
   setStatusFilter: (status: string) => void;
-  setViewMode: (mode: "kanban" | "list" | "calendar") => void;
   addSection: (section: Section) => void;
   updateSection: (id: string, updates: Partial<Section>) => void;
   deleteSection: (id: string) => void;
@@ -95,7 +90,5 @@ export interface AppState {
   addTask: (task: Task) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
-  filterSections: () => void;
   filterProjects: () => void;
-  filterTasks: () => void;
 }

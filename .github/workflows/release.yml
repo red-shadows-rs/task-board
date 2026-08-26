@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create GitHub release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Extract version from tag
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify version matches package.json
+        run: |
+          code_ver=$(node -p "require('./package.json').version")
+          if [ "$code_ver" != "${{ steps.ver.outputs.version }}" ]; then
+            echo "::error::Tag v${{ steps.ver.outputs.version }} != package.json version $code_ver"
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Validate before release
+        env:
+          SESSION_SECRET: release-build-secret-not-used-at-runtime
+        run: |
+          npm run lint
+          npm run type-check
+          npm run build
+
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          awk "/^## \[$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md > release_notes.txt
+          if [ ! -s release_notes.txt ]; then
+            echo "No CHANGELOG.md entry found for v$VERSION." > release_notes.txt
+          fi
+          cat release_notes.txt
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v3
+        with:
+          body_path: release_notes.txt
+          generate_release_notes: false
