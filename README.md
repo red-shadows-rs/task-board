@@ -1,57 +1,144 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="public/favicon.svg">
-    <img alt="TaskBoard" src="public/favicon.svg" width="96" height="96">
-  </picture>
-</p>
+<div align="center">
 
-<h1 align="center">TaskBoard</h1>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="public/favicon.svg">
+  <img alt="TaskBoard" src="public/favicon.svg" width="96" height="96">
+</picture>
 
-<p align="center">
-  <strong>Professional Task Management System for Teams &amp; Managers</strong>
-</p>
+# TaskBoard
 
-<p align="center">
-  <a href="https://github.com/red-shadows-rs/TaskBoard/blob/main/README_AR.md">العربية</a>
-  &nbsp;&bull;&nbsp;
-  <a href="#-features">Features</a>
-  &nbsp;&bull;&nbsp;
-  <a href="#-tech-stack">Tech Stack</a>
-  &nbsp;&bull;&nbsp;
-  <a href="#-getting-started">Getting Started</a>
-  &nbsp;&bull;&nbsp;
-  <a href="#-project-structure">Structure</a>
-  &nbsp;&bull;&nbsp;
-  <a href="#-contributing">Contributing</a>
-  &nbsp;&bull;&nbsp;
-  <a href="#-license">License</a>
-</p>
+Professional bilingual task management for teams & managers - Kanban, roles, analytics, one self-hosted app
 
-<br/>
+[![Version](https://img.shields.io/badge/version-4.1.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-MIT-10b981?style=flat-square)](LICENSE)
+![Framework](https://img.shields.io/badge/framework-Next.js%2016-000000?style=flat-square&logo=nextdotjs)
+![Database](https://img.shields.io/badge/database-SQLite-003b57?style=flat-square&logo=sqlite)
+[![Stars](https://img.shields.io/github/stars/red-shadows-rs/task-board?style=flat-square&color=eab308&logo=github)](https://github.com/red-shadows-rs/task-board/stargazers)
 
-<p align="center">
-  <img src="https://img.shields.io/badge/version-4.1.0-2563eb?style=for-the-badge" alt="Version 4.1.0">
-  <img src="https://img.shields.io/badge/license-MIT-10b981?style=for-the-badge" alt="MIT License">
-  <img src="https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js 16">
-  <img src="https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React 18">
-  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript 5">
-  <img src="https://img.shields.io/badge/Tailwind-3-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind CSS 3">
-</p>
-
-<br/>
+</div>
 
 ---
 
-## Why TaskBoard?
+## 🌐 Language
 
-Managing projects across bilingual teams is challenging. TaskBoard bridges the gap with a Kanban-style interface that supports both English and Arabic natively — from RTL layout to bilingual task descriptions. Built on Next.js 16 with a focus on performance, security, and developer experience.
-
-- **Bilingual by Design** — Every feature works in English and Arabic, not as an afterthought
-- **Self-Contained** — Embedded SQLite database (better-sqlite3) means zero external services; deploy anywhere
-- **Production-Ready** — Rate limiting, security headers, XSS protection, and session-based auth out of the box
-- **Export Everything** — Generate PDF reports for projects, tasks, and analytics with bilingual font support
+<a href="README.md">🇬🇧 English</a> · <a href="README_AR.md">🇸🇦 العربية</a>
 
 ---
+
+## 📋 Table of Contents
+
+- [What is TaskBoard?](#what-is-taskboard)
+- [Roles & Permissions](#roles--permissions)
+- [Quick Start](#quick-start)
+- [Commands](#commands)
+- [Environment Variables](#environment-variables)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [Security](#security)
+- [Changelog](#changelog)
+- [License](#license)
+
+---
+
+<a id="what-is-taskboard"></a>
+
+## 🤔 What is TaskBoard?
+
+**TaskBoard** is a free, open-source task management system for bilingual teams - built natively in English and Arabic (full RTL layout) and written to fix the root problems found in hosted tools. No per-seat pricing, no external services, no lock-in.
+
+| Problem                    | Hosted Tools                       | TaskBoard                                               |
+| -------------------------- | ---------------------------------- | ------------------------------------------------------- |
+| Arabic is an afterthought  | ❌ Broken RTL, untranslated fields | ✅ Bilingual everywhere - titles, descriptions, reports |
+| Per-seat subscriptions     | ❌ Monthly cost per user           | ✅ Self-hosted, MIT licensed                            |
+| External database services | ❌ Managed DB required             | ✅ Embedded SQLite - zero dependencies                  |
+| Weak role separation       | ❌ Everyone sees everything        | ✅ Server-enforced leader / member / client scopes      |
+| No native reporting        | ❌ Export behind paywalls          | ✅ Bilingual PDF reports built in                       |
+
+---
+
+<a id="roles--permissions"></a>
+
+## 👥 Roles & Permissions
+
+| Role       | Scope               | Can Do                                                                       |
+| ---------- | ------------------- | ---------------------------------------------------------------------------- |
+| **leader** | Everything          | Manage projects, sections, tasks, users, prices - full CRUD everywhere       |
+| **member** | Assigned tasks only | View assigned tasks, update their status, work on their own kanban items     |
+| **client** | Own projects only   | Track project progress, edit tasks inside their projects, join the team view |
+
+All permissions are enforced **server-side** on every API route - the UI simply mirrors what the backend allows. Task prices (`assigneePrices`) are visible to leaders only and stripped from every other response.
+
+---
+
+<a id="quick-start"></a>
+
+## 🚀 Quick Start
+
+```bash
+git clone https://github.com/red-shadows-rs/task-board.git
+cd task-board
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### First Account
+
+On an empty database the **first account created is auto-promoted to leader** (bootstrap mode). After that, only leaders can create and manage users from the Team page.
+
+### Production
+
+```bash
+npm run build
+npm start
+```
+
+Requirements:
+
+- Node.js >= 20
+- npm >= 10
+
+---
+
+<a id="commands"></a>
+
+## ⌨️ Commands
+
+| Command                | Description                                                            |
+| ---------------------- | ---------------------------------------------------------------------- |
+| `npm run dev`          | Start dev server with Turbopack                                        |
+| `npm run build`        | Production build                                                       |
+| `npm start`            | Start production server                                                |
+| `npm run lint`         | Run ESLint                                                             |
+| `npm run lint:fix`     | Auto-fix lint issues                                                   |
+| `npm run format`       | Format with Prettier                                                   |
+| `npm run format:check` | Check formatting                                                       |
+| `npm run type-check`   | TypeScript type checking                                               |
+| `npm run validate`     | Full validation (format + lint + types) - required before every commit |
+
+---
+
+<a id="environment-variables"></a>
+
+## 🔧 Environment Variables
+
+Copy `.env.example` to `.env.local` before first run:
+
+| Variable         | Required | Default       | Description                                                            |
+| ---------------- | -------- | ------------- | ---------------------------------------------------------------------- |
+| `NODE_ENV`       | Yes      | `development` | Environment mode                                                       |
+| `SESSION_SECRET` | Yes      | —             | HMAC-SHA256 signing key for session cookies - use a long random string |
+
+The app refuses to boot without `SESSION_SECRET`.
+
+---
+
+<a id="features"></a>
 
 ## ✨ Features
 
@@ -72,6 +159,7 @@ Managing projects across bilingual teams is challenging. TaskBoard bridges the g
         <li><strong>Analytics Dashboard</strong> — Interactive charts via Recharts</li>
         <li><strong>PDF Export</strong> — Projects, sections, tasks, and analytics reports</li>
         <li><strong>Progress Tracking</strong> — Visual indicators for project and task status</li>
+        <li><strong>Task Pricing</strong> — Per-assignee prices with column totals (leaders only)</li>
       </ul>
     </td>
   </tr>
@@ -89,11 +177,11 @@ Managing projects across bilingual teams is challenging. TaskBoard bridges the g
     <td width="50%">
       <h3>🔒 Security</h3>
       <ul>
-        <li><strong>Session Auth</strong> — bcrypt + HMAC-SHA256 httpOnly cookies</li>
+        <li><strong>Session Auth</strong> — bcrypt + HMAC-SHA256 httpOnly cookies, invalidated on password change</li>
         <li><strong>Rate Limiting</strong> — Per-IP on auth endpoints</li>
         <li><strong>Input Validation</strong> — Zod schemas on all API routes</li>
         <li><strong>XSS Protection</strong> — DOMPurify sanitization</li>
-        <li><strong>Security Headers</strong> — X-Frame-Options, CSP, Referrer-Policy</li>
+        <li><strong>Security Headers</strong> — X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy</li>
       </ul>
     </td>
   </tr>
@@ -101,7 +189,9 @@ Managing projects across bilingual teams is challenging. TaskBoard bridges the g
 
 ---
 
-## 🚀 Tech Stack
+<a id="tech-stack"></a>
+
+## 🧩 Tech Stack
 
 | Category          | Technology                                                                                                        | Purpose                |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------- |
@@ -109,14 +199,14 @@ Managing projects across bilingual teams is challenging. TaskBoard bridges the g
 | **UI**            | [React 18](https://react.dev/) + [Radix UI](https://www.radix-ui.com/)                                            | Component primitives   |
 | **Styling**       | [Tailwind CSS 3](https://tailwindcss.com/)                                                                        | Utility-first CSS      |
 | **Language**      | [TypeScript 5](https://www.typescriptlang.org/)                                                                   | Type safety            |
+| **Database**      | [better-sqlite3](https://github.com/WiseLibs/better-sqlite3)                                                      | Embedded SQLite        |
+| **Auth**          | [bcryptjs](https://github.com/dcodeIO/bcrypt.js) + HMAC-SHA256                                                    | Sessions               |
 | **Drag & Drop**   | [dnd-kit](https://dndkit.com/)                                                                                    | Kanban reordering      |
 | **Rich Text**     | [Tiptap](https://tiptap.dev/)                                                                                     | Task descriptions      |
 | **Forms**         | [React Hook Form](https://react-hook-form.com/) + [Zod](https://zod.dev/)                                         | Validation             |
 | **State**         | [Zustand](https://zustand.docs.pmnd.rs/)                                                                          | Global UI state        |
 | **Charts**        | [Recharts](https://recharts.org/)                                                                                 | Analytics              |
 | **PDF**           | [jsPDF](https://github.com/parallax/jsPDF) + [jspdf-autotable](https://github.com/simonbengtsson/jsPDF-AutoTable) | Export                 |
-| **Auth**          | [bcryptjs](https://github.com/dcodeIO/bcrypt.js) + HMAC-SHA256                                                    | Sessions               |
-| **Database**      | [better-sqlite3](https://github.com/WiseLibs/better-sqlite3)                                                      | Embedded SQLite        |
 | **Animations**    | [Framer Motion](https://www.framer.com/motion/)                                                                   | Transitions            |
 | **Notifications** | [react-hot-toast](https://react-hot-toast.com/)                                                                   | Toast alerts           |
 | **Dates**         | [date-fns](https://date-fns.org/) + [react-day-picker](https://react-day-picker.js.org/)                          | Date handling          |
@@ -126,55 +216,9 @@ Managing projects across bilingual teams is challenging. TaskBoard bridges the g
 
 ---
 
-## 📦 Getting Started
+<a id="project-structure"></a>
 
-### Prerequisites
-
-- **Node.js** >= 20
-- **npm** >= 10
-
-### Quick Start
-
-```bash
-git clone https://github.com/red-shadows-rs/TaskBoard.git
-cd taskboard
-npm install
-cp .env.example .env.local
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### First Account
-
-On first launch no users exist. The first account created through the app is
-automatically promoted to **leader** (bootstrap mode); after that, only leaders
-can create and manage users from the Team page.
-
-### Environment Variables
-
-| Variable         | Required | Default       | Description             |
-| ---------------- | -------- | ------------- | ----------------------- |
-| `NODE_ENV`       | Yes      | `development` | Environment mode        |
-| `SESSION_SECRET` | Yes      | —             | HMAC-SHA256 signing key |
-
-### Available Scripts
-
-| Command                | Description                             |
-| ---------------------- | --------------------------------------- |
-| `npm run dev`          | Start dev server with Turbopack         |
-| `npm run build`        | Production build                        |
-| `npm start`            | Start production server                 |
-| `npm run lint`         | Run ESLint                              |
-| `npm run lint:fix`     | Auto-fix lint issues                    |
-| `npm run format`       | Format with Prettier                    |
-| `npm run format:check` | Check formatting                        |
-| `npm run type-check`   | TypeScript type checking                |
-| `npm run validate`     | Full validation (format + lint + types) |
-
----
-
-## 📁 Project Structure
+## 🏗️ Project Structure
 
 ```
 TaskBoard/
@@ -183,13 +227,15 @@ TaskBoard/
 │   ├── css/                    # Font Awesome
 │   ├── fonts/                  # IBM Plex Sans Arabic (PDF)
 │   ├── images/                 # Task attachments
-│   ├── locales/                # i18n (en/ar)
+│   ├── locales/                # i18n modules (en/ar)
 │   └── manifest.json           # PWA manifest
 ├── src/
 │   ├── app/
 │   │   ├── api/                # REST API routes
 │   │   │   ├── auth/           # Login, logout, session
-│   │   │   ├── projects/       # Project CRUD
+│   │   │   ├── images/         # Attachment serving
+│   │   │   ├── locales/        # Locale module listing
+│   │   │   ├── projects/       # Project CRUD + reorder
 │   │   │   ├── sections/       # Section CRUD + reorder
 │   │   │   ├── tasks/          # Task CRUD + reorder + images
 │   │   │   ├── users/          # User CRUD + reorder
@@ -198,28 +244,25 @@ TaskBoard/
 │   │   ├── login/              # Authentication page
 │   │   └── profile/            # User profile
 │   ├── components/
-│   │   ├── common/             # Shared logic
+│   │   ├── common/             # Shared logic (kanban, tasks, charts)
 │   │   ├── layouts/            # Navbar, footer
 │   │   ├── pages/              # Page-level components
 │   │   └── ui/                 # UI primitives (shadcn/ui-style)
 │   ├── contexts/               # Language + Zustand store
-│   ├── lib/                    # Auth sessions + SQLite data layer
+│   ├── lib/
+│   │   ├── auth.ts             # Session signing, RBAC guards
+│   │   └── db.ts               # SQLite schema + data layer
 │   ├── types/                  # TypeScript interfaces
 │   └── utils/                  # PDF export, pricing
-├── CHANGELOG.md
-├── CONTRIBUTING.md
-├── CODE_OF_CONDUCT.md
-├── SECURITY.md
-├── LICENSE
-├── README.md
-├── README_AR.md
-├── next.config.ts
-├── tailwind.config.ts
-├── tsconfig.json
-└── package.json
+├── .github/                    # Issue/PR templates, CI, release workflow
+├── CHANGELOG.md                # Release history
+├── LICENSE                     # MIT
+└── README.md                   # This file
 ```
 
 ---
+
+<a id="roadmap"></a>
 
 ## 🗺️ Roadmap
 
@@ -232,56 +275,64 @@ TaskBoard/
 
 ---
 
+<a id="contributing"></a>
+
 ## 🤝 Contributing
 
-We welcome contributions. Please read our [Contributing Guide](./CONTRIBUTING.md) and [Code of Conduct](./CODE_OF_CONDUCT.md) before submitting a pull request.
-
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Commit your changes
+4. Push to the branch
 5. Open a Pull Request
 
+Full workflow, commit convention and release process in [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ---
+
+<a id="security"></a>
 
 ## 🔒 Security
 
-To report a security vulnerability, please follow our [Security Policy](./SECURITY.md). Do not open a public issue.
+To report a security vulnerability, please follow the [Security Policy](SECURITY.md). **Do not open a public issue.**
 
 ---
+
+<a id="changelog"></a>
 
 ## 📝 Changelog
 
-See [CHANGELOG.md](./CHANGELOG.md) for a detailed version history. This project follows [Semantic Versioning](https://semver.org/).
+See [CHANGELOG.md](CHANGELOG.md) for a detailed version history. This project follows [Semantic Versioning](https://semver.org/).
 
-| Version   | Date       | Highlights                                                                    |
-| --------- | ---------- | ----------------------------------------------------------------------------- |
-| **4.1.0** | 2026-08-27 | SQLite storage, server-side RBAC, hardened sessions, API cleanup              |
-| **4.0.6** | 2026-05-15 | Updated author username, set GitHub repo topics                               |
-| **4.0.5** | 2026-05-14 | Fixed drag-and-drop on desktop, fixed metadata icons, removed ESLint comments |
-| 4.0.4     | 2026-05-14 | Removed ESLint disable comments, removed console logs, added missing tags     |
-| 4.0.3     | 2026-05-14 | Fixed repo links, updated branding, version bump                              |
-| 4.0.2     | 2026-05-14 | Restored original icon, added .env.example                                    |
-| 4.0.1     | 2026-05-14 | Documentation overhaul, Arabic README, improved icons, data cleanup           |
-| 4.0.0     | 2026-05-14 | Analytics, PDF export, PWA, bilingual, dark/light theme, drag & drop          |
-| 3.0.0     | 2026-04-01 | Project/section management, task CRUD, user roles, session auth               |
-| 2.0.0     | 2026-03-01 | Kanban board UI, task statuses/priorities/tags, dashboard layout              |
-| 1.0.0     | 2026-02-01 | Initial setup: Next.js App Router, login page, Tailwind CSS                   |
-
----
-
-## 📄 License
-
-This project is licensed under the [MIT License](./LICENSE).
+| Version    | Date       | Highlights                                                              |
+| ---------- | ---------- | ----------------------------------------------------------------------- |
+| **v4.1.0** | 2026-08-27 | SQLite storage, server-side RBAC, hardened sessions, GitHub scaffolding |
+| **v4.0.6** | 2026-05-15 | Updated author username, set GitHub repo topics                         |
+| **v4.0.5** | 2026-05-14 | Fixed drag-and-drop on desktop, fixed metadata icons                    |
+| v4.0.4     | 2026-05-14 | Removed ESLint disable comments, removed console logs                   |
+| v4.0.3     | 2026-05-14 | Fixed repo links, updated branding, version bump                        |
+| v4.0.2     | 2026-05-14 | Restored original icon, added .env.example                              |
+| v4.0.1     | 2026-05-14 | Documentation overhaul, Arabic README, data cleanup                     |
+| v4.0.0     | 2026-05-14 | Analytics, PDF export, PWA, bilingual, dark/light theme                 |
+| v3.0.0     | 2026-04-01 | Project/section management, task CRUD, user roles                       |
+| v2.0.0     | 2026-03-01 | Kanban board UI, statuses/priorities/tags, dashboard                    |
+| v1.0.0     | 2026-02-01 | Initial setup: Next.js App Router, login, Tailwind                      |
 
 ---
 
-## 👤 Author
+<a id="license"></a>
 
-[**Shadow-x78**](https://github.com/Shadow-x78) — RED SHADOWS | RS
+## 📜 License
+
+Distributed under the [MIT License](LICENSE).
 
 ---
 
-<p align="center">
-  <sub>Built with ❤️ by <a href="https://github.com/red-shadows-rs">RED SHADOWS | RS</a></sub>
-</p>
+<div align="center">
+
+Built by <a href="https://github.com/Shadow-x78">Shadow-x78</a> ·
+<a href="https://github.com/red-shadows-rs">RED SHADOWS | RS</a> ·
+[Changelog](CHANGELOG.md)
+
+<sub>&copy; 2026 TaskBoard</sub>
+
+</div>
