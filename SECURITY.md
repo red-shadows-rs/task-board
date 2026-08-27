@@ -23,7 +23,6 @@
 ---
 
 <a id="supported-versions"></a>
-
 ## 🛡️ Supported Versions
 
 | Version | Supported      |
@@ -36,7 +35,6 @@ Only the latest minor release receives security updates. Ensure you are on the m
 ---
 
 <a id="reporting"></a>
-
 ## 🚨 Reporting a Vulnerability
 
 If you discover a security vulnerability in TaskBoard, please report it **responsibly** and **privately**. **Do not open a public issue.**
@@ -72,7 +70,6 @@ If you discover a security vulnerability in TaskBoard, please report it **respon
 ---
 
 <a id="disclosure"></a>
-
 ## 📢 Disclosure Policy
 
 We follow a **coordinated disclosure** model:
@@ -88,7 +85,6 @@ We follow a **coordinated disclosure** model:
 ---
 
 <a id="considerations"></a>
-
 ## 🔍 Security Considerations
 
 ### Scope
@@ -127,7 +123,6 @@ TaskBoard is a self-hosted Next.js application with an embedded SQLite database.
 ---
 
 <a id="measures"></a>
-
 ## 🔒 Security Measures
 
 TaskBoard implements several security measures out of the box:
@@ -142,7 +137,6 @@ TaskBoard implements several security measures out of the box:
 ---
 
 <a id="hall-of-fame"></a>
-
 ## 🏆 Hall of Fame
 
 We thank the following security researchers for responsible disclosure:

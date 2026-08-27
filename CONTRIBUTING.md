@@ -2,10 +2,6 @@
 
 Contributions to TaskBoard are welcome. This document describes the development workflow.
 
-## 🤝 Code of Conduct
-
-This project adheres to a [Code of Conduct](./CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
-
 ## 🌿 Branch Naming
 
 Use the following prefixes for branches:
@@ -74,10 +70,6 @@ git push origin main --follow-tags
 The tag push triggers the [release workflow](.github/workflows/release.yml), which
 verifies the version against `package.json`, runs lint/type-check/build, and publishes
 a GitHub release with the notes extracted from `CHANGELOG.md`.
-
-## ❓ Questions
-
-If you have questions, feel free to open a discussion or issue on GitHub.
 
 ---
 

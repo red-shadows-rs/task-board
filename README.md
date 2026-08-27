@@ -44,7 +44,6 @@ Professional bilingual task management for teams & managers - Kanban, roles, ana
 ---
 
 <a id="what-is-taskboard"></a>
-
 ## 🤔 What is TaskBoard?
 
 **TaskBoard** is a free, open-source task management system for bilingual teams - built natively in English and Arabic (full RTL layout) and written to fix the root problems found in hosted tools. No per-seat pricing, no external services, no lock-in.
@@ -60,7 +59,6 @@ Professional bilingual task management for teams & managers - Kanban, roles, ana
 ---
 
 <a id="roles--permissions"></a>
-
 ## 👥 Roles & Permissions
 
 | Role       | Scope               | Can Do                                                                       |
@@ -74,7 +72,6 @@ All permissions are enforced **server-side** on every API route - the UI simply 
 ---
 
 <a id="quick-start"></a>
-
 ## 🚀 Quick Start
 
 ```bash
@@ -106,7 +103,6 @@ Requirements:
 ---
 
 <a id="commands"></a>
-
 ## ⌨️ Commands
 
 | Command                | Description                                                            |
@@ -124,7 +120,6 @@ Requirements:
 ---
 
 <a id="environment-variables"></a>
-
 ## 🔧 Environment Variables
 
 Copy `.env.example` to `.env.local` before first run:
@@ -139,7 +134,6 @@ The app refuses to boot without `SESSION_SECRET`.
 ---
 
 <a id="features"></a>
-
 ## ✨ Features
 
 <table>
@@ -190,7 +184,6 @@ The app refuses to boot without `SESSION_SECRET`.
 ---
 
 <a id="tech-stack"></a>
-
 ## 🧩 Tech Stack
 
 | Category          | Technology                                                                                                        | Purpose                |
@@ -217,7 +210,6 @@ The app refuses to boot without `SESSION_SECRET`.
 ---
 
 <a id="project-structure"></a>
-
 ## 🏗️ Project Structure
 
 ```
@@ -263,7 +255,6 @@ TaskBoard/
 ---
 
 <a id="roadmap"></a>
-
 ## 🗺️ Roadmap
 
 - [x] Embedded database (SQLite via better-sqlite3)
@@ -276,7 +267,6 @@ TaskBoard/
 ---
 
 <a id="contributing"></a>
-
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -290,7 +280,6 @@ Full workflow, commit convention and release process in [CONTRIBUTING.md](CONTRI
 ---
 
 <a id="security"></a>
-
 ## 🔒 Security
 
 To report a security vulnerability, please follow the [Security Policy](SECURITY.md). **Do not open a public issue.**
@@ -298,7 +287,6 @@ To report a security vulnerability, please follow the [Security Policy](SECURITY
 ---
 
 <a id="changelog"></a>
-
 ## 📝 Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for a detailed version history. This project follows [Semantic Versioning](https://semver.org/).
@@ -321,7 +309,6 @@ See [CHANGELOG.md](CHANGELOG.md) for a detailed version history. This project fo
 ---
 
 <a id="license"></a>
-
 ## 📜 License
 
 Distributed under the [MIT License](LICENSE).
