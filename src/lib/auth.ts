@@ -1,19 +1,17 @@
 import bcrypt from "bcryptjs";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { createHmac, timingSafeEqual } from "crypto";
 
-import {
-  getAuthUserByEmail,
-  getAuthUserById,
-  getProjectById,
-  isProjectMember,
-} from "@/lib/db";
+import { getAuthUserByEmail, getAuthUserById, getProjectById } from "@/lib/db";
 import { HttpError } from "@/app/api/shared/responseShared";
 
-import type { Project, User, UserRole } from "@/types";
+import type { Project, User } from "@/types";
 
 const SESSION_COOKIE = "taskboard_session";
 const SESSION_TTL_MS = 60 * 60 * 24 * 7 * 1000;
+
+export const API_CLIENT_HEADER = "x-taskboard-client";
+export const KNOWN_API_CLIENTS = ["vscode"] as const;
 
 const SESSION_SECRET = process.env.SESSION_SECRET;
 
@@ -23,8 +21,14 @@ if (!SESSION_SECRET) {
   );
 }
 
+if (SESSION_SECRET.length < 32 || SESSION_SECRET === "your-secret-key-here") {
+  throw new Error(
+    "SESSION_SECRET is too weak. Use a random value of at least 32 characters, e.g. openssl rand -base64 48",
+  );
+}
+
 const DUMMY_HASH =
-  "$2a$10$Yh9TOlo/N2B8NfnTU2sZS.CLDbBgDFeqpP1cxaJFjkEUhWSVd4EhC";
+  "$2a$12$bO5DVrpUpvT7y9ATVq755OOSefo03vKskMrwlsZPN32Z.VOP/i5Fy";
 
 function signData(data: string): string {
   return createHmac("sha256", SESSION_SECRET as string)
@@ -46,7 +50,7 @@ export function createSessionToken(userId: string): {
   };
 }
 
-export function verifySessionToken(signedValue: string): string | null {
+function verifySessionToken(signedValue: string): string | null {
   const firstDot = signedValue.indexOf(".");
   if (firstDot === -1) return null;
 
@@ -82,7 +86,7 @@ export function verifySessionToken(signedValue: string): string | null {
 }
 
 export async function hashPassword(password: string): Promise<string> {
-  const salt = await bcrypt.genSalt(10);
+  const salt = await bcrypt.genSalt(12);
   return bcrypt.hash(password, salt);
 }
 
@@ -117,12 +121,23 @@ export async function verifyCredentials(
 
 export async function getSession(): Promise<User | null> {
   try {
-    const cookieStore = await cookies();
-    const session = cookieStore.get(SESSION_COOKIE);
+    const headerStore = await headers();
+    const authorization = headerStore.get("authorization");
 
-    if (!session) return null;
+    let signedToken: string | undefined;
 
-    const userId = verifySessionToken(session.value);
+    if (authorization?.startsWith("Bearer ")) {
+      signedToken = authorization.slice("Bearer ".length).trim();
+    }
+
+    if (!signedToken) {
+      const cookieStore = await cookies();
+      signedToken = cookieStore.get(SESSION_COOKIE)?.value;
+    }
+
+    if (!signedToken) return null;
+
+    const userId = verifySessionToken(signedToken);
     if (!userId) return null;
 
     const user = getAuthUserById(userId);
@@ -164,16 +179,6 @@ export async function requireLeader(): Promise<User> {
   return user;
 }
 
-export async function requireRoles(...roles: UserRole[]): Promise<User> {
-  const user = await requireAuth();
-
-  if (!roles.includes(user.role)) {
-    throw new HttpError(403, "Forbidden: insufficient role");
-  }
-
-  return user;
-}
-
 export function isLeader(user: User): boolean {
   return user.role === "leader";
 }
@@ -201,9 +206,4 @@ export function assertCanWriteProject(user: User, project: Project): void {
 
 export function canUserReadProject(user: User, project: Project): boolean {
   return isLeader(user) || project.teamMembers.includes(user.id);
-}
-
-export function isMemberOfProject(user: User, projectId: string): boolean {
-  if (isLeader(user)) return true;
-  return isProjectMember(projectId, user.id);
 }

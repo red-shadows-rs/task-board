@@ -6,9 +6,10 @@ import sharp from "sharp";
 
 import { getProjectOrThrow, isLeader, requireAuth } from "@/lib/auth";
 import {
+  IMAGES_DIR,
   getSectionById,
   getTaskById,
-  isPathInsidePublicImages,
+  isPathInsideImagesDir,
   updateTaskFields,
 } from "@/lib/db";
 import { HttpError, errorResponse } from "@/app/api/shared/responseShared";
@@ -74,7 +75,6 @@ export async function POST(
       "image/png",
       "image/gif",
       "image/webp",
-      "image/svg+xml",
     ];
 
     for (const file of files) {
@@ -89,22 +89,16 @@ export async function POST(
       if (!allowedMimeTypes.includes(file.type)) {
         return NextResponse.json(
           {
-            error: `Invalid file type: ${file.type}. Allowed: JPEG, PNG, GIF, WebP, SVG`,
+            error: `Invalid file type: ${file.type}. Allowed: JPEG, PNG, GIF, WebP`,
           },
           { status: 400 },
         );
       }
     }
 
-    const publicDir = path.join(process.cwd(), "public");
-    const imagesDir = path.join(
-      publicDir,
-      "images",
-      section.projectId,
-      task.sectionId,
-    );
+    const imagesDir = path.join(IMAGES_DIR, section.projectId, task.sectionId);
 
-    if (!isPathInsidePublicImages(imagesDir)) {
+    if (!isPathInsideImagesDir(imagesDir)) {
       throw new HttpError(400, "Invalid image path");
     }
 
@@ -122,7 +116,7 @@ export async function POST(
         .replace(/\\/g, "/");
       const fullPath = path.join(imagesDir, filename);
 
-      if (!isPathInsidePublicImages(fullPath)) {
+      if (!isPathInsideImagesDir(fullPath)) {
         throw new HttpError(400, "Invalid image path");
       }
 
@@ -130,7 +124,10 @@ export async function POST(
       let buffer: Buffer;
 
       try {
-        buffer = await sharp(fileBuffer)
+        buffer = await sharp(fileBuffer, {
+          limitInputPixels: 16_000_000,
+          failOn: "error",
+        })
           .webp({ quality: 90, effort: 6 })
           .toBuffer();
       } catch {

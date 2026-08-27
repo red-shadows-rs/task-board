@@ -57,15 +57,19 @@ interface ChartErrorBoundaryProps {
   fallback?: React.ReactNode;
 }
 
+interface ChartErrorBoundaryBaseProps extends ChartErrorBoundaryProps {
+  fallbackMessage: string;
+}
+
 interface ChartErrorBoundaryState {
   hasError: boolean;
 }
 
-class ChartErrorBoundary extends React.Component<
-  ChartErrorBoundaryProps,
+class ChartErrorBoundaryBase extends React.Component<
+  ChartErrorBoundaryBaseProps,
   ChartErrorBoundaryState
 > {
-  constructor(props: ChartErrorBoundaryProps) {
+  constructor(props: ChartErrorBoundaryBaseProps) {
     super(props);
     this.state = { hasError: false };
   }
@@ -80,13 +84,26 @@ class ChartErrorBoundary extends React.Component<
         this.props.fallback || (
           <div className="flex items-center justify-center h-[350px] text-muted-foreground text-sm border rounded-lg bg-muted/30">
             <AlertCircle className="h-5 w-5 ltr:mr-2 rtl:ml-2" />
-            <span>Chart failed to load</span>
+            <span>{this.props.fallbackMessage}</span>
           </div>
         )
       );
     }
     return this.props.children;
   }
+}
+
+function ChartErrorBoundary({ children, fallback }: ChartErrorBoundaryProps) {
+  const { t } = useLanguage();
+
+  return (
+    <ChartErrorBoundaryBase
+      fallback={fallback}
+      fallbackMessage={t("common.charts.loadFailed")}
+    >
+      {children}
+    </ChartErrorBoundaryBase>
+  );
 }
 
 interface StatsCardsProps {

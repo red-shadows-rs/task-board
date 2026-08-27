@@ -132,6 +132,13 @@ export async function PATCH(
 
     const updates = { ...result.data };
 
+    if (updates.attachments) {
+      const knownPaths = new Set(existingTask.attachments);
+      if (updates.attachments.some((p) => !knownPaths.has(p))) {
+        throw new HttpError(400, "Unknown attachment path");
+      }
+    }
+
     if (user.role === "client") {
       delete updates.assigneePrices;
       if (updates.sectionId) {

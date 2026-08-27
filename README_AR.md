@@ -9,7 +9,7 @@
 
 إدارة مهام ثنائية اللغة واحترافية للفرق والمدراء - كانبان، أدوار، تحليلات، تطبيق واحد ذاتي الاستضافة
 
-[![الإصدار](https://img.shields.io/badge/الإصدار-4.1.1-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/الإصدار-4.2.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![الرخصة](https://img.shields.io/badge/الرخصة-MIT-10b981?style=flat-square)](LICENSE)
 ![Framework](https://img.shields.io/badge/framework-Next.js%2016-000000?style=flat-square&logo=nextdotjs)
 ![قاعدة البيانات](https://img.shields.io/badge/قاعدة_البيانات-SQLite-003b57?style=flat-square&logo=sqlite)
@@ -33,6 +33,7 @@
 - [الأوامر](#commands)
 - [متغيرات البيئة](#environment-variables)
 - [المميزات](#features)
+- [إضافة VS Code](#vs-code-extension)
 - [التقنيات المستخدمة](#tech-stack)
 - [هيكل المشروع](#project-structure)
 - [خارطة الطريق](#roadmap)
@@ -124,12 +125,12 @@ npm start
 
 انسخ `.env.example` إلى `.env.local` قبل أول تشغيل:
 
-| المتغير          | مطلوب | الافتراضي     | الوصف                                                               |
-| ---------------- | ----- | ------------- | ------------------------------------------------------------------- |
-| `NODE_ENV`       | نعم   | `development` | وضع البيئة                                                          |
-| `SESSION_SECRET` | نعم   | —             | مفتاح توقيع HMAC-SHA256 لكوكيز الجلسة - استخدم نصاً عشوائياً طويلاً |
+| المتغير          | مطلوب | الافتراضي | الوصف                                                                           |
+| ---------------- | ----- | --------- | ------------------------------------------------------------------------------- |
+| `SESSION_SECRET` | نعم   | —         | مفتاح توقيع HMAC-SHA256 للجلسات - نص عشوائي **بحد أدنى 32 حرفاَ**              |
+| `TRUST_PROXY`    | لا    | غير مضبوط | اضبطه `true` فقط خلف وكيل عكسي موثوق لتفعيل تحديد المعدل لكل IP               |
 
-التطبيق يرفض الإقلاع بدون `SESSION_SECRET`.
+التطبيق يرفض الإقلاع بدون `SESSION_SECRET` قوي (أنشئ واحداً عبر `openssl rand -base64 48`).
 
 ---
 
@@ -171,15 +172,37 @@ npm start
     <td width="50%">
       <h3>🔒 الأمان</h3>
       <ul>
-        <li><strong>مصادقة الجلسات</strong> — bcrypt + كوكيز httpOnly موقعة بـ HMAC-SHA256، تُبطل عند تغيير كلمة المرور</li>
-        <li><strong>تحديد معدل الطلبات</strong> — لكل IP على مسارات المصادقة</li>
+        <li><strong>مصادقة الجلسات</strong> — bcrypt + كوكيز httpOnly ورموز Bearer موقعة بـ HMAC-SHA256، تُبطل عند تغيير كلمة المرور</li>
+        <li><strong>تحديد معدل الطلبات</strong> — لكل حساب على تسجيل الدخول، ولكل IP خلف وكيل موثوق</li>
         <li><strong>التحقق من المدخلات</strong> — مخططات Zod على كل مسارات API</li>
         <li><strong>حماية XSS</strong> — تعقيم عبر DOMPurify</li>
-        <li><strong>رؤوس الأمان</strong> — X-Frame-Options، nosniff، Referrer-Policy، Permissions-Policy</li>
+        <li><strong>رؤوس الأمان</strong> — X-Frame-Options، nosniff، Referrer-Policy، Permissions-Policy، CSP (تجريبي)، HSTS</li>
+        <li><strong>مرفقات مؤمّنة</strong> — تُخزّن خارج <code>public/</code> وتُخدم حصراً عبر API المخوَّل</li>
       </ul>
     </td>
   </tr>
 </table>
+
+---
+
+<a id="vs-code-extension"></a>
+## 📦 إضافة VS Code
+
+أدر مهامك دون مغادرة المحرر. الإضافة في [`vscode-extension/`](vscode-extension/) مبنية **بنسبة 100% على واجهات VS Code الأصلية - بدون webviews** - وتعكس نموذج الصلاحيات في الموقع.
+
+- **حاوية في شريط النشاط** بثلاث لوحات أصلية: **الحساب** (المستخدم، الدور، السيرفر، الإحصائيات)، **مهامي** (المهام الموكلة إليك مجمعة حسب الحالة)، و**المشاريع** (شجرة كاملة مشاريع ← أقسام ← مهام مع التقدم).
+- **إجراءات سريعة** — تغيير حالة المهمة عبر Quick Pick، إنشاء مهام، فتح أي شيء في المتصفح (أزرار مدمجة عند التمرير).
+- **شارة في شريط الحالة** بعدد مهامك المفتوحة، مع خيار التحديث التلقائي.
+- **آمنة افتراضياً** — توكن الجلسة في SecretStorage، مصادقة Bearer، وتحذير عند الاستخدام دون HTTPS.
+
+```bash
+cd vscode-extension
+npm install && npm run build
+# اضغط F5 لفتح Extension Development Host، أو:
+npm run package && code --install-extension taskboard-vscode-0.2.0.vsix
+```
+
+التوثيق الكامل في [vscode-extension/README.md](vscode-extension/README.md).
 
 ---
 
@@ -203,7 +226,8 @@ npm start
 | **الحركات**         | [Framer Motion](https://www.framer.com/motion/)                                                                   | الانتقالات             |
 | **الإشعارات**       | [react-hot-toast](https://react-hot-toast.com/)                                                                   | تنبيهات toast          |
 | **التواريخ**        | [date-fns](https://date-fns.org/) + [react-day-picker](https://react-day-picker.js.org/)                          | معالجة التواريخ        |
-| **الأيقونات**       | [Lucide React](https://lucide.dev/) + [Font Awesome 6](https://fontawesome.com/)                                  | الأيقونات              |
+| **الأيقونات**       | [Lucide React](https://lucide.dev/)                                                                               | الأيقونات              |
+| **عميل VS Code**    | [VS Code Extension API](https://code.visualstudio.com/api)                                                        | `vscode-extension/`    |
 | **الـ Linting**     | [ESLint 9](https://eslint.org/) (flat config)                                                                     | جودة الكود             |
 | **التنسيق**         | [Prettier](https://prettier.io/)                                                                                  | نمط الكود              |
 
@@ -214,18 +238,16 @@ npm start
 
 ```
 TaskBoard/
-├── data/                       # قاعدة بيانات SQLite (تُنشأ عند التشغيل)
+├── data/                       # قاعدة بيانات SQLite + صور المرفقات (عند التشغيل)
 ├── public/
-│   ├── css/                    # Font Awesome
 │   ├── fonts/                  # IBM Plex Sans Arabic (PDF)
-│   ├── images/                 # مرفقات المهام
 │   ├── locales/                # وحدات الترجمة (en/ar)
 │   └── manifest.json           # PWA manifest
 ├── src/
 │   ├── app/
 │   │   ├── api/                # مسارات REST API
 │   │   │   ├── auth/           # الدخول، الخروج، الجلسة
-│   │   │   ├── images/         # خدمة المرفقات
+│   │   │   ├── images/         # خدمة المرفقات المصادَق عليها
 │   │   │   ├── locales/        # قائمة وحدات الترجمة
 │   │   │   ├── projects/       # CRUD المشاريع + إعادة الترتيب
 │   │   │   ├── sections/       # CRUD الأقسام + إعادة الترتيب
@@ -246,6 +268,8 @@ TaskBoard/
 │   │   └── db.ts               # مخطط SQLite + طبقة البيانات
 │   ├── types/                  # واجهات TypeScript
 │   └── utils/                  # تصدير PDF، التسعير
+├── scripts/                    # مدقق تطابق الترجمات
+├── vscode-extension/           # إضافة VS Code الأصلية (حزمة مستقلة)
 ├── .github/                    # قوالب Issues/PR، CI، workflow الإصدارات
 ├── CHANGELOG.md                # سجل الإصدارات
 ├── LICENSE                     # MIT
@@ -258,6 +282,7 @@ TaskBoard/
 ## 🗺️ خارطة الطريق
 
 - [x] قاعدة بيانات مدمجة (SQLite عبر better-sqlite3)
+- [x] إضافة VS Code أصلية
 - [ ] إشعارات بريدية عند إسناد المهام
 - [ ] دعم OAuth2 / الدخول الاجتماعي
 - [ ] تحديثات لحظية عبر WebSocket
@@ -293,6 +318,7 @@ TaskBoard/
 
 | الإصدار    | التاريخ    | الأبرز                                                               |
 | ---------- | ---------- | -------------------------------------------------------------------- |
+| **v4.2.0** | 2026-08-27 | إصلاحات الفحص الأمني، إضافة VS Code أصلية، تنظيف الأكواد الميتة      |
 | **v4.1.1** | 2026-08-27 | توحيد نمط كل ملفات التوثيق، بانر اللوغو SVG، روابط الريبو kebab-case |
 | **v4.1.0** | 2026-08-27 | تخزين SQLite، RBAC على الخادم، جلسات محصنة، هيكلة GitHub             |
 | **v4.0.6** | 2026-05-15 | تحديث اسم المؤلف، ضبط مواضيع المستودع                                |

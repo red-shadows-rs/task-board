@@ -7,7 +7,8 @@
     "tasks": "Tasks",
     "projects": "Projects",
     "profile": "Profile",
-    "logout": "Logout"
+    "logout": "Logout",
+    "menu": "Menu"
   },
   "role": {
     "leader": "Leader",
@@ -55,6 +56,9 @@
     "failedToUpdateSectionOrder": "Failed to update section order",
     "failedToUpdateTaskOrder": "Failed to update task order",
     "failedToMoveTask": "Failed to move task"
+  },
+  "charts": {
+    "loadFailed": "Chart failed to load"
   },
   "footer": {
     "copyright": "© {year} TaskBoard. All rights reserved."

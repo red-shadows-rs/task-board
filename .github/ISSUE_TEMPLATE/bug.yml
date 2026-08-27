@@ -14,7 +14,7 @@ body:
       label: Environment
       description: Runtime / browser / TaskBoard versions.
       placeholder: |
-        TaskBoard version: e.g. 4.1.0
+        TaskBoard version: e.g. 4.2.0
         Node.js version (node -v): e.g. 22.x
         npm version: e.g. 10.x
         OS: e.g. Ubuntu 24.04 / Windows 11

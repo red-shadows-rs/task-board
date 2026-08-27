@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard } from "lucide-react";
+import { Home, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 
 import {
@@ -59,7 +59,7 @@ export default function NotFound() {
             </p>
             <Link href="/dashboard/tasks" className="block">
               <Button className="w-full">
-                <i className="fas fa-home ltr:mr-2 rtl:ml-2" />
+                <Home className="h-4 w-4" />
                 {t("common.notFound.returnHome")}
               </Button>
             </Link>

@@ -27,7 +27,7 @@ task-board | vX.Y.Z | <type>: <description>
 - A release ships as ONE commit: the pending feature work plus the version bump,
   tagged `vX.Y.Z` (there is no separate `release:` bump commit).
 
-Example: `task-board | v4.1.0 | fix: redact assignee prices from member API responses`
+Example: `task-board | v4.2.0 | fix: redact assignee prices from member API responses`
 
 ## 💅 Code Style
 

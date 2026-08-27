@@ -2,7 +2,7 @@
 
 # Security Policy - TaskBoard
 
-[![Version](https://img.shields.io/badge/version-4.1.1-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-4.2.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-10b981?style=flat-square)](LICENSE)
 ![Framework](https://img.shields.io/badge/framework-Next.js%2016-000000?style=flat-square&logo=nextdotjs)
 ![Database](https://img.shields.io/badge/database-SQLite-003b57?style=flat-square&logo=sqlite)

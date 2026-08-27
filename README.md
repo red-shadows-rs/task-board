@@ -9,7 +9,7 @@
 
 Professional bilingual task management for teams & managers - Kanban, roles, analytics, one self-hosted app
 
-[![Version](https://img.shields.io/badge/version-4.1.1-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-4.2.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-10b981?style=flat-square)](LICENSE)
 ![Framework](https://img.shields.io/badge/framework-Next.js%2016-000000?style=flat-square&logo=nextdotjs)
 ![Database](https://img.shields.io/badge/database-SQLite-003b57?style=flat-square&logo=sqlite)
@@ -33,6 +33,7 @@ Professional bilingual task management for teams & managers - Kanban, roles, ana
 - [Commands](#commands)
 - [Environment Variables](#environment-variables)
 - [Features](#features)
+- [VS Code Extension](#vs-code-extension)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
 - [Roadmap](#roadmap)
@@ -124,12 +125,12 @@ Requirements:
 
 Copy `.env.example` to `.env.local` before first run:
 
-| Variable         | Required | Default       | Description                                                            |
-| ---------------- | -------- | ------------- | ---------------------------------------------------------------------- |
-| `NODE_ENV`       | Yes      | `development` | Environment mode                                                       |
-| `SESSION_SECRET` | Yes      | —             | HMAC-SHA256 signing key for session cookies - use a long random string |
+| Variable         | Required | Default | Description                                                                              |
+| ---------------- | -------- | ------- | ---------------------------------------------------------------------------------------- |
+| `SESSION_SECRET` | Yes      | —       | HMAC-SHA256 signing key for sessions - random string of **at least 32 characters**       |
+| `TRUST_PROXY`    | No       | unset   | Set `true` only behind a trusted reverse proxy to enable per-IP rate limiting            |
 
-The app refuses to boot without `SESSION_SECRET`.
+The app refuses to boot without a strong `SESSION_SECRET` (generate one with `openssl rand -base64 48`).
 
 ---
 
@@ -171,15 +172,37 @@ The app refuses to boot without `SESSION_SECRET`.
     <td width="50%">
       <h3>🔒 Security</h3>
       <ul>
-        <li><strong>Session Auth</strong> — bcrypt + HMAC-SHA256 httpOnly cookies, invalidated on password change</li>
-        <li><strong>Rate Limiting</strong> — Per-IP on auth endpoints</li>
+        <li><strong>Session Auth</strong> — bcrypt + HMAC-SHA256 httpOnly cookies and Bearer tokens, invalidated on password change</li>
+        <li><strong>Rate Limiting</strong> — Per-account on login, per-IP behind a trusted proxy</li>
         <li><strong>Input Validation</strong> — Zod schemas on all API routes</li>
         <li><strong>XSS Protection</strong> — DOMPurify sanitization</li>
-        <li><strong>Security Headers</strong> — X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy</li>
+        <li><strong>Security Headers</strong> — X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy, CSP (report-only), HSTS</li>
+        <li><strong>Authenticated Uploads</strong> — Attachments stored outside <code>public/</code> and served only through the authorized API</li>
       </ul>
     </td>
   </tr>
 </table>
+
+---
+
+<a id="vs-code-extension"></a>
+## 📦 VS Code Extension
+
+Manage your tasks without leaving the editor. The extension in [`vscode-extension/`](vscode-extension/) is built **100% on native VS Code APIs — no webviews** — and mirrors the web app's permission model.
+
+- **Activity Bar container** with three native panels: **Account** (user, role, server, stats, dashboard shortcut), **My Tasks** (assigned tasks grouped by status), and **Projects** (full Projects → Sections → Tasks tree with progress).
+- **Quick actions** — change task status via Quick Pick, create tasks, open anything in the browser (inline buttons on hover).
+- **Status bar badge** with your open task count; auto-refresh option.
+- **Secure by default** — session token in VS Code SecretStorage, Bearer-token API auth, cleartext-HTTP warning.
+
+```bash
+cd vscode-extension
+npm install && npm run build
+# Press F5 to launch an Extension Development Host, or:
+npm run package && code --install-extension taskboard-vscode-0.2.0.vsix
+```
+
+Full documentation in [vscode-extension/README.md](vscode-extension/README.md).
 
 ---
 
@@ -203,7 +226,8 @@ The app refuses to boot without `SESSION_SECRET`.
 | **Animations**    | [Framer Motion](https://www.framer.com/motion/)                                                                   | Transitions            |
 | **Notifications** | [react-hot-toast](https://react-hot-toast.com/)                                                                   | Toast alerts           |
 | **Dates**         | [date-fns](https://date-fns.org/) + [react-day-picker](https://react-day-picker.js.org/)                          | Date handling          |
-| **Icons**         | [Lucide React](https://lucide.dev/) + [Font Awesome 6](https://fontawesome.com/)                                  | Iconography            |
+| **Icons**         | [Lucide React](https://lucide.dev/)                                                                               | Iconography            |
+| **VS Code Client**| [VS Code Extension API](https://code.visualstudio.com/api)                                                        | `vscode-extension/`    |
 | **Linting**       | [ESLint 9](https://eslint.org/) (flat config)                                                                     | Code quality           |
 | **Formatting**    | [Prettier](https://prettier.io/)                                                                                  | Code style             |
 
@@ -214,18 +238,16 @@ The app refuses to boot without `SESSION_SECRET`.
 
 ```
 TaskBoard/
-├── data/                       # SQLite database (created at runtime)
+├── data/                       # SQLite database + attachment images (runtime)
 ├── public/
-│   ├── css/                    # Font Awesome
 │   ├── fonts/                  # IBM Plex Sans Arabic (PDF)
-│   ├── images/                 # Task attachments
 │   ├── locales/                # i18n modules (en/ar)
 │   └── manifest.json           # PWA manifest
 ├── src/
 │   ├── app/
 │   │   ├── api/                # REST API routes
 │   │   │   ├── auth/           # Login, logout, session
-│   │   │   ├── images/         # Attachment serving
+│   │   │   ├── images/         # Authenticated attachment serving
 │   │   │   ├── locales/        # Locale module listing
 │   │   │   ├── projects/       # Project CRUD + reorder
 │   │   │   ├── sections/       # Section CRUD + reorder
@@ -246,6 +268,8 @@ TaskBoard/
 │   │   └── db.ts               # SQLite schema + data layer
 │   ├── types/                  # TypeScript interfaces
 │   └── utils/                  # PDF export, pricing
+├── scripts/                    # Locale parity checker
+├── vscode-extension/           # Native VS Code extension (own package)
 ├── .github/                    # Issue/PR templates, CI, release workflow
 ├── CHANGELOG.md                # Release history
 ├── LICENSE                     # MIT
@@ -258,6 +282,7 @@ TaskBoard/
 ## 🗺️ Roadmap
 
 - [x] Embedded database (SQLite via better-sqlite3)
+- [x] Native VS Code extension
 - [ ] Email notifications for task assignments
 - [ ] OAuth2 / social login support
 - [ ] WebSocket real-time updates
@@ -293,6 +318,7 @@ See [CHANGELOG.md](CHANGELOG.md) for a detailed version history. This project fo
 
 | Version    | Date       | Highlights                                                                          |
 | ---------- | ---------- | ----------------------------------------------------------------------------------- |
+| **v4.2.0** | 2026-08-27 | Security audit fixes, native VS Code extension, dead-code cleanup   |
 | **v4.1.1** | 2026-08-27 | Unified docs style across all markdown, SVG logo banner, kebab-case repo references |
 | **v4.1.0** | 2026-08-27 | SQLite storage, server-side RBAC, hardened sessions, GitHub scaffolding             |
 | **v4.0.6** | 2026-05-15 | Updated author username, set GitHub repo topics                                     |

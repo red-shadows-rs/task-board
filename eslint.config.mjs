@@ -11,6 +11,7 @@ export default tseslint.config(
       "build/**",
       "node_modules/**",
       "next-env.d.ts",
+      "vscode-extension/**",
     ],
   },
   ...tseslint.configs.recommended,

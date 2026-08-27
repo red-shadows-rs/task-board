@@ -33,8 +33,6 @@ export default async function RootLayout({
   return (
     <html lang={lang} dir={dir} suppressHydrationWarning>
       <head>
-        {/* eslint-disable-next-line @next/next/no-css-tags */}
-        <link rel="stylesheet" href="/css/font-awesome.min.css" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link
           rel="apple-touch-icon"

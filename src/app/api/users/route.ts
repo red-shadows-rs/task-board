@@ -3,8 +3,9 @@ import { v4 as uuidv4 } from "uuid";
 
 import { hashPassword, requireAuth, requireLeader } from "@/lib/auth";
 import {
-  countUsers,
+  createFirstUser,
   createUser,
+  countUsers,
   listUsers,
   listRelatedUsers,
   UniqueConstraintError,
@@ -15,7 +16,10 @@ import {
   parseJsonBody,
   zodErrorResponse,
 } from "@/app/api/shared/responseShared";
-import { checkRequestRateLimit } from "@/app/api/shared/rateLimitShared";
+import {
+  checkRateLimit,
+  checkRequestRateLimit,
+} from "@/app/api/shared/rateLimitShared";
 import { userCreateSchema } from "@/app/api/shared/validatorsShared";
 
 import type { NextRequest } from "next/server";
@@ -26,7 +30,7 @@ function stripPassword(user: User): Omit<User, "password"> {
   return rest;
 }
 
-function stripEmail(user: User): Omit<User, "password"> {
+function stripEmail(user: User): Omit<User, "password" | "email"> {
   const {
     password: _password,
     email: _email,
@@ -58,32 +62,65 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const isBootstrap = countUsers() === 0;
-
-    if (!isBootstrap) {
-      const rateLimit = checkRequestRateLimit(
-        request,
-        "user-create",
-        20,
-        60 * 1000,
-      );
-      if (!rateLimit.allowed) {
-        return NextResponse.json(
-          { error: "Too many requests. Please try again later." },
-          { status: 429 },
-        );
-      }
-      await requireLeader();
-    }
-
     const body = await parseJsonBody(request);
     const result = userCreateSchema.safeParse(body);
     if (!result.success) {
       return zodErrorResponse(result.error);
     }
 
-    const { name, email, password } = result.data;
-    const role = isBootstrap ? "leader" : result.data.role;
+    const { name, email, password, role } = result.data;
+
+    if (countUsers() === 0) {
+      const bootstrapLimit = checkRateLimit(
+        "bootstrap",
+        "bootstrap",
+        5,
+        15 * 60 * 1000,
+      );
+      if (!bootstrapLimit.allowed) {
+        return NextResponse.json(
+          { error: "Too many requests. Please try again later." },
+          { status: 429 },
+        );
+      }
+
+      const hashedPassword = await hashPassword(password);
+
+      let user: User | null;
+      try {
+        user = createFirstUser({
+          id: uuidv4(),
+          name,
+          email: email.toLowerCase(),
+          passwordHash: hashedPassword,
+        });
+      } catch (error) {
+        if (error instanceof UniqueConstraintError) {
+          throw new HttpError(409, "A user with this email already exists");
+        }
+        throw error;
+      }
+
+      if (!user) {
+        throw new HttpError(409, "TaskBoard is already initialized");
+      }
+
+      return NextResponse.json({ user: stripPassword(user) }, { status: 201 });
+    }
+
+    const rateLimit = checkRequestRateLimit(
+      request,
+      "user-create",
+      20,
+      60 * 1000,
+    );
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429 },
+      );
+    }
+    await requireLeader();
 
     const hashedPassword = await hashPassword(password);
 

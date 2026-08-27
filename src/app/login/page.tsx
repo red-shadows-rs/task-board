@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, LayoutDashboard } from "lucide-react";
+import { Eye, EyeOff, LayoutDashboard, Lock, LogIn, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -156,8 +156,8 @@ export default function LoginPage() {
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-1">
-                <Label htmlFor="email">
-                  <i className="fas fa-envelope ltr:mr-2 rtl:ml-2" />
+                <Label htmlFor="email" className="inline-flex items-center">
+                  <Mail className="h-4 w-4 ltr:mr-2 rtl:ml-2" />
                   {t("auth.form.fields.email")}
                 </Label>
                 <Input
@@ -174,8 +174,8 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="password">
-                  <i className="fas fa-lock ltr:mr-2 rtl:ml-2" />
+                <Label htmlFor="password" className="inline-flex items-center">
+                  <Lock className="h-4 w-4 ltr:mr-2 rtl:ml-2" />
                   {t("auth.form.fields.password")}
                 </Label>
                 <div className="relative">
@@ -216,7 +216,7 @@ export default function LoginPage() {
                   </>
                 ) : (
                   <>
-                    <i className="fas fa-sign-in-alt ltr:mr-2 rtl:ml-2" />
+                    <LogIn className="h-4 w-4" />
                     {t("auth.form.actions.submit")}
                   </>
                 )}

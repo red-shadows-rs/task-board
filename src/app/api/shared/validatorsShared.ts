@@ -3,12 +3,17 @@ import { z } from "zod";
 const MAX_TEXT = 2000;
 const MAX_TITLE = 200;
 
-export const localizedTextSchema = z.object({
+const localizedTextSchema = z.object({
   en: z.string().min(1).max(MAX_TEXT),
   ar: z.string().min(1).max(MAX_TEXT),
 });
 
-export const orderSchema = z.number().int().min(0).max(1000000);
+const orderSchema = z.number().int().min(0).max(1000000);
+
+const isoDateSchema = z.union([
+  z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date, expected YYYY-MM-DD"),
+  z.literal(""),
+]);
 
 export const loginSchema = z.object({
   email: z.string().email("Invalid email address").max(320),
@@ -71,8 +76,8 @@ export const projectCreateSchema = z.object({
       .min(3, "Arabic title must be at least 3 characters")
       .max(MAX_TITLE),
   }),
-  startDate: z.string().max(100).optional().or(z.literal("")),
-  endDate: z.string().max(100).optional().or(z.literal("")),
+  startDate: isoDateSchema.optional(),
+  endDate: isoDateSchema.optional(),
   status: z
     .enum(["planning", "active", "completed", "on_hold"])
     .default("planning"),
@@ -118,7 +123,7 @@ export const taskCreateSchema = z.object({
   description: localizedTextSchema,
   status: z.enum(["todo", "in_progress", "in_review", "done"]).default("todo"),
   assignedTo: z.array(z.string().uuid()).max(100).default([]),
-  dueDate: z.string().max(100).optional().or(z.literal("")),
+  dueDate: isoDateSchema.optional(),
   priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
   tags: z.array(z.string().max(50)).max(50).default([]),
   order: orderSchema.optional(),
@@ -149,18 +154,7 @@ export const taskUpdateSchema = taskCreateSchema.partial().extend({
   sectionId: z.string().uuid().optional(),
 });
 
-export const taskAssigneeUpdateSchema = z.object({
-  assigneePrices: z
-    .array(
-      z.object({
-        userId: z.string().uuid(),
-        price: z.number().min(0).max(1000000000),
-      }),
-    )
-    .max(100),
-});
-
-export const reorderItemSchema = z.object({
+const reorderItemSchema = z.object({
   id: z.string().uuid(),
   order: orderSchema,
   sectionId: z.string().uuid().optional(),
@@ -170,7 +164,7 @@ export const reorderBodySchema = z.object({
   updates: z.array(reorderItemSchema).min(1).max(1000),
 });
 
-export const userReorderItemSchema = z.object({
+const userReorderItemSchema = z.object({
   id: z.string().uuid(),
   order: orderSchema,
 });
@@ -180,7 +174,6 @@ export const userReorderBodySchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
-export type UserCreateInput = z.infer<typeof userCreateSchema>;
 export type ProjectInput = z.infer<typeof projectCreateSchema>;
 export type SectionInput = z.infer<typeof sectionCreateSchema>;
 export type TaskInput = z.infer<typeof taskCreateSchema>;

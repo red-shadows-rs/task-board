@@ -17,19 +17,23 @@ function pruneExpiredEntries(): void {
     }
   }
 
-  if (store.size > MAX_ENTRIES) {
-    store.clear();
+  while (store.size > MAX_ENTRIES) {
+    const oldestKey = store.keys().next().value;
+    if (oldestKey === undefined) break;
+    store.delete(oldestKey);
   }
 }
 
 setInterval(pruneExpiredEntries, PRUNE_INTERVAL_MS).unref();
 
-export function getClientIp(request: NextRequest): string {
+function getClientIp(request: NextRequest): string | null {
+  if (!process.env.TRUST_PROXY) return null;
+
   const forwarded = request.headers.get("x-forwarded-for");
-  if (!forwarded) return "unknown";
+  if (!forwarded) return null;
 
   const hops = forwarded.split(",").map((hop) => hop.trim());
-  return hops[hops.length - 1] || "unknown";
+  return hops[hops.length - 1] || null;
 }
 
 export function checkRateLimit(
@@ -66,5 +70,9 @@ export function checkRequestRateLimit(
   maxRequests: number,
   windowMs: number,
 ): { allowed: boolean; remaining: number; resetTime: number } {
-  return checkRateLimit(getClientIp(request), keyPrefix, maxRequests, windowMs);
+  const ip = getClientIp(request);
+  if (!ip) {
+    return { allowed: true, remaining: maxRequests, resetTime: 0 };
+  }
+  return checkRateLimit(ip, keyPrefix, maxRequests, windowMs);
 }

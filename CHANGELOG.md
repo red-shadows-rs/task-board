@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.2.0] - 2026-08-27
+
+### ✨ Added
+- **Native VS Code extension** (`vscode-extension/`) built entirely on native VS Code APIs (zero webviews): dedicated Activity Bar container with three panels — **Account** (user, role, server, stats), **My Tasks** (grouped by status), and **Projects** (full tree) — plus inline status/create actions, welcome screens, status-bar badge, and SecretStorage-backed sessions.
+- **Bearer token API auth** for external clients: login returns `sessionToken` when the `x-taskboard-client: vscode` header is present, and every route accepts `Authorization: Bearer <token>`.
+- **`TRUST_PROXY` environment variable** to enable per-IP rate limiting only behind a trusted reverse proxy.
+- **Locale parity checker** (`npm run locales:check`) validating en/ar key symmetry and every `t(...)` key used in code; wired into `npm run validate`.
+
+### 🎨 Changed
+- **Attachment uploads now stored under `data/images/`** (outside `public/`) so they can never be served as static files; the `/images/:path*` rewrite is a `beforeFiles` rewrite and always routes through the authenticated API.
+- **`next/image` renders attachments with `unoptimized`** so authenticated images load directly with the session cookie instead of failing in the optimizer.
+- **Login rate limiting keyed per account (email)**; the spoofable `X-Forwarded-For` header is no longer trusted by default.
+- **First-account bootstrap is atomic** (SQLite transaction) — exactly one leader can ever be created on an empty database, and it is rate limited.
+- **Last-leader protection enforced atomically at the database layer** for both role changes and deletions.
+- **Project end dates** recomputed for both the old and new project when a task moves sections, and cleared when no due dates remain.
+- **bcrypt cost raised 10 → 12**; `dueDate`/`startDate`/`endDate` inputs now must be ISO `YYYY-MM-DD` or empty.
+- **Config-file comments unified** on the banner style (`.env.example`, `.env.local`, `.gitignore`, `.editorconfig`, `.gitattributes`); all comments removed from source code.
+- **Root `tsconfig.json`** excludes the self-contained `vscode-extension` package and drops the dead `**/*.mts` glob.
+
+### 🐛 Fixed
+- Uploaded images were served **unauthenticated** as static files from `public/`, bypassing the image API auth entirely.
+- `/api/images/[...path]` lacked per-project authorization — any signed-in user could read any project's images.
+- A client could **delete other tasks'/projects' attachment files** by PATCHing a crafted `attachments` array; unknown paths are now rejected.
+- Rate limiter wiped **all** buckets when exceeding 10,000 entries (now evicts oldest entries).
+- Without `X-Forwarded-For`, every client shared one `"unknown"` rate-limit bucket, locking all users out after 5 logins.
+- Broken `@font-face` blocks in the bundled Font Awesome CSS blanked the login/error page icons — Font Awesome removed, icons migrated to `lucide-react`.
+- Missing translation keys `common.nav.menu`, `dashboard.analytics.filters.dateRange`, and the hardcoded chart error string.
+
+### 🔒 Security
+- **Content-Security-Policy (report-only)** and **Strict-Transport-Security** headers added.
+- **`SESSION_SECRET` strength enforced** at startup: at least 32 characters and never the documented placeholder.
+- **SVG removed from the upload MIME allow-list**; sharp capped at 16 megapixels (`limitInputPixels`) to block decompression bombs.
+- **DOMPurify hardened** with explicit `FORBID_TAGS` (`svg`, `math`, `form`, `style`, `input`) and forbidden attributes.
+
+### 🗑️ Removed
+- Dead code: `requireRoles`, `isMemberOfProject`, `getTaskProjectId`, `isProjectMember`, `calculateSectionTotal`, `taskAssigneeUpdateSchema`, `AvatarImage`, plus 14 unnecessary public exports made internal.
+- `public/css/font-awesome.min.css` and `public/webfonts/`, `public/images/`, and `.playwright-mcp/` tooling artifacts.
+
 ## [v4.1.1] - 2026-08-27
 
 ### ✨ Added

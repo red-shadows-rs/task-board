@@ -51,7 +51,8 @@
   },
   "filters": {
     "allProjects": "كل المشاريع",
-    "byProject": "تصفية حسب المشروع"
+    "byProject": "تصفية حسب المشروع",
+    "dateRange": "نطاق التاريخ"
   },
   "messages": {
     "success": {

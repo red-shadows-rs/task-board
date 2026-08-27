@@ -1,9 +1,11 @@
-# ────────────────────────────────────────────────
-#  Line endings: enforce LF everywhere
-# ────────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# TaskBoard - Git Attributes
+# ─────────────────────────────────────────────
+
+# ── Line Endings ──
 * text=auto eol=lf
 
-# Source
+# ── Source ──
 *.ts text eol=lf
 *.tsx text eol=lf
 *.mjs text eol=lf
@@ -11,11 +13,11 @@
 *.json text eol=lf
 *.md text eol=lf
 
-# Web assets
+# ── Web Assets ──
 *.svg text eol=lf
 *.webmanifest text eol=lf
 
-# Treat binary assets as binary
+# ── Binary Assets ──
 *.webp binary
 *.woff binary
 *.woff2 binary

@@ -7,7 +7,7 @@ import {
   verifyPassword,
 } from "@/lib/auth";
 import {
-  countLeaders,
+  LastLeaderError,
   deleteUser,
   getAuthUserById,
   getUserById,
@@ -123,12 +123,6 @@ export async function PATCH(
 
     const { name, email, password, role, order } = result.data;
 
-    if (role && role !== target.role && target.role === "leader") {
-      if (countLeaders() <= 1) {
-        throw new HttpError(400, "Cannot change the role of the last leader");
-      }
-    }
-
     let updated;
     try {
       updated = updateUserFields(id, {
@@ -142,6 +136,9 @@ export async function PATCH(
     } catch (error) {
       if (error instanceof UniqueConstraintError) {
         throw new HttpError(409, "A user with this email already exists");
+      }
+      if (error instanceof LastLeaderError) {
+        throw new HttpError(400, error.message);
       }
       throw error;
     }
@@ -173,11 +170,14 @@ export async function DELETE(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    if (target.role === "leader" && countLeaders() <= 1) {
-      throw new HttpError(400, "Cannot delete the last leader");
+    try {
+      deleteUser(id);
+    } catch (error) {
+      if (error instanceof LastLeaderError) {
+        throw new HttpError(400, error.message);
+      }
+      throw error;
     }
-
-    deleteUser(id);
 
     return NextResponse.json({ success: true });
   } catch (error) {

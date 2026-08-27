@@ -7,7 +7,8 @@
     "tasks": "المهام",
     "projects": "المشاريع",
     "profile": "الملف الشخصي",
-    "logout": "تسجيل الخروج"
+    "logout": "تسجيل الخروج",
+    "menu": "القائمة"
   },
   "role": {
     "leader": "قائد",
@@ -55,6 +56,9 @@
     "failedToUpdateSectionOrder": "فشل تحديث ترتيب القسم",
     "failedToUpdateTaskOrder": "فشل تحديث ترتيب المهمة",
     "failedToMoveTask": "فشل نقل المهمة"
+  },
+  "charts": {
+    "loadFailed": "فشل تحميل المخطط"
   },
   "footer": {
     "copyright": "© {year} TaskBoard. جميع الحقوق محفوظة."

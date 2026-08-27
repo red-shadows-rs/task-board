@@ -13,14 +13,15 @@ import type {
   UserRole,
 } from "@/types";
 
-export type AuthUser = User & {
+type AuthUser = User & {
   passwordHash: string;
   passwordChangedAt: number;
 };
 
 const DB_DIR = path.join(process.cwd(), "data");
 const DB_FILE = path.join(DB_DIR, "taskboard.db");
-const PUBLIC_DIR = path.join(process.cwd(), "public");
+export const IMAGES_DIR = path.join(DB_DIR, "images");
+const LEGACY_IMAGES_DIR = path.join(process.cwd(), "public", "images");
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS users (
@@ -112,8 +113,34 @@ const globalStore = globalThis as typeof globalThis & {
   __taskboardDb?: DbHandle;
 };
 
+function migrateLegacyPublicImages(): void {
+  if (!fs.existsSync(LEGACY_IMAGES_DIR)) return;
+
+  try {
+    fs.mkdirSync(IMAGES_DIR, { recursive: true });
+
+    for (const entry of fs.readdirSync(LEGACY_IMAGES_DIR)) {
+      if (entry === ".gitkeep") continue;
+      try {
+        fs.renameSync(
+          path.join(LEGACY_IMAGES_DIR, entry),
+          path.join(IMAGES_DIR, entry),
+        );
+      } catch {
+        continue;
+      }
+    }
+
+    fs.rmSync(LEGACY_IMAGES_DIR, { recursive: true, force: true });
+  } catch {
+    void 0;
+  }
+}
+
 function initDb(): Database.Database {
   fs.mkdirSync(DB_DIR, { recursive: true });
+  fs.mkdirSync(IMAGES_DIR, { recursive: true });
+  migrateLegacyPublicImages();
   const db = new Database(DB_FILE);
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
@@ -121,7 +148,7 @@ function initDb(): Database.Database {
   return db;
 }
 
-export function getDb(): Database.Database {
+function getDb(): Database.Database {
   if (!globalStore.__taskboardDb) {
     globalStore.__taskboardDb = { db: initDb() };
   }
@@ -266,6 +293,13 @@ export class UniqueConstraintError extends Error {
   }
 }
 
+export class LastLeaderError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "LastLeaderError";
+  }
+}
+
 function isUniqueViolation(error: unknown): boolean {
   return (
     typeof error === "object" &&
@@ -384,7 +418,32 @@ export function createUser(input: {
   return getUserById(input.id) as User;
 }
 
-export type UserFieldUpdates = {
+export function createFirstUser(input: {
+  id: string;
+  name: string;
+  email: string;
+  passwordHash: string;
+}): User | null {
+  const db = getDb();
+
+  const attempt = db.transaction(() => {
+    const row = db.prepare("SELECT COUNT(*) AS n FROM users").get() as {
+      n: number;
+    };
+    if (row.n > 0) return null;
+
+    const now = new Date().toISOString();
+    db.prepare(
+      `INSERT INTO users (id, name, email, password_hash, role, sort_order, password_changed_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'leader', 0, 0, ?, ?)`,
+    ).run(input.id, input.name, input.email, input.passwordHash, now, now);
+    return getUserById(input.id) as User;
+  });
+
+  return attempt();
+}
+
+type UserFieldUpdates = {
   name?: string;
   email?: string;
   passwordHash?: string;
@@ -432,21 +491,50 @@ export function updateUserFields(
   values.push(new Date().toISOString());
   values.push(id);
 
-  try {
-    db.prepare(`UPDATE users SET ${sets.join(", ")} WHERE id = ?`).run(
-      ...values,
-    );
-  } catch (error) {
-    if (isUniqueViolation(error)) throw new UniqueConstraintError();
-    throw error;
-  }
+  const apply = db.transaction(() => {
+    if (
+      updates.role !== undefined &&
+      updates.role !== "leader" &&
+      countLeaders() <= 1
+    ) {
+      const target = db
+        .prepare("SELECT role FROM users WHERE id = ?")
+        .get(id) as { role: UserRole } | undefined;
+      if (target?.role === "leader") {
+        throw new LastLeaderError("Cannot change the role of the last leader");
+      }
+    }
+
+    try {
+      db.prepare(`UPDATE users SET ${sets.join(", ")} WHERE id = ?`).run(
+        ...values,
+      );
+    } catch (error) {
+      if (isUniqueViolation(error)) throw new UniqueConstraintError();
+      throw error;
+    }
+  });
+
+  apply();
 
   return getUserById(id);
 }
 
 export function deleteUser(id: string): boolean {
-  const result = getDb().prepare("DELETE FROM users WHERE id = ?").run(id);
-  return result.changes > 0;
+  const db = getDb();
+
+  const apply = db.transaction(() => {
+    const target = db.prepare("SELECT role FROM users WHERE id = ?").get(id) as
+      { role: UserRole } | undefined;
+
+    if (target?.role === "leader" && countLeaders() <= 1) {
+      throw new LastLeaderError("Cannot delete the last leader");
+    }
+
+    return db.prepare("DELETE FROM users WHERE id = ?").run(id);
+  });
+
+  return apply().changes > 0;
 }
 
 export function reorderUsers(updates: { id: string; order: number }[]): void {
@@ -557,7 +645,7 @@ export function createProject(input: {
   return getProjectById(input.id) as Project;
 }
 
-export type ProjectFieldUpdates = {
+type ProjectFieldUpdates = {
   title?: { en: string; ar: string };
   startDate?: string;
   endDate?: string;
@@ -620,15 +708,6 @@ export function updateProjectFields(
   return getProjectById(id);
 }
 
-export function isProjectMember(projectId: string, userId: string): boolean {
-  const row = getDb()
-    .prepare(
-      "SELECT 1 AS x FROM project_members WHERE project_id = ? AND user_id = ?",
-    )
-    .get(projectId, userId);
-  return Boolean(row);
-}
-
 export function getMaxTaskOrderInSection(sectionId: string): number {
   const row = getDb()
     .prepare(
@@ -647,18 +726,7 @@ export function getMaxSectionOrderInProject(projectId: string): number {
   return row.m;
 }
 
-export function getTaskProjectId(taskId: string): string | null {
-  const row = getDb()
-    .prepare(
-      `SELECT s.project_id AS projectId FROM tasks t
-       JOIN sections s ON s.id = t.section_id
-       WHERE t.id = ?`,
-    )
-    .get(taskId) as { projectId: string } | undefined;
-  return row ? row.projectId : null;
-}
-
-export function getSectionProjectId(sectionId: string): string | null {
+function getSectionProjectId(sectionId: string): string | null {
   const row = getDb()
     .prepare("SELECT project_id AS projectId FROM sections WHERE id = ?")
     .get(sectionId) as { projectId: string } | undefined;
@@ -759,7 +827,7 @@ export function createSection(input: {
   return getSectionById(input.id) as Section;
 }
 
-export type SectionFieldUpdates = {
+type SectionFieldUpdates = {
   title?: { en: string; ar: string };
   order?: number;
 };
@@ -953,7 +1021,7 @@ export function createTask(input: {
   return getTaskById(input.id) as Task;
 }
 
-export type TaskFieldUpdates = {
+type TaskFieldUpdates = {
   sectionId?: string;
   title?: { en: string; ar: string };
   description?: { en: string; ar: string };
@@ -1088,10 +1156,14 @@ export function updateTaskFields(
   });
   apply();
 
+  const previousProjectId = getSectionProjectId(existing.section_id);
   const projectId = getSectionProjectId(
     updates.sectionId ?? existing.section_id,
   );
   if (projectId) recomputeProjectEndDate(projectId);
+  if (previousProjectId && previousProjectId !== projectId) {
+    recomputeProjectEndDate(previousProjectId);
+  }
 
   return { task: getTaskById(id), removedAttachments };
 }
@@ -1149,17 +1221,14 @@ export function recomputeProjectEndDate(projectId: string): void {
     )
     .get(projectId) as { maxDue: string | null };
 
-  if (!row.maxDue) return;
-
   db.prepare(
     "UPDATE projects SET end_date = ?, updated_at = ? WHERE id = ?",
-  ).run(row.maxDue, new Date().toISOString(), projectId);
+  ).run(row.maxDue ?? "", new Date().toISOString(), projectId);
 }
 
-export function isPathInsidePublicImages(targetPath: string): boolean {
-  const baseDir = path.join(PUBLIC_DIR, "images");
+export function isPathInsideImagesDir(targetPath: string): boolean {
   const resolvedTarget = path.resolve(targetPath);
-  const resolvedBase = path.resolve(baseDir);
+  const resolvedBase = path.resolve(IMAGES_DIR);
   const relative = path.relative(resolvedBase, resolvedTarget);
   return (
     relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative)
@@ -1170,8 +1239,8 @@ export function cleanupAttachmentFiles(attachmentPaths: string[]): void {
   const dirs = new Set<string>();
 
   for (const attachmentPath of attachmentPaths) {
-    const fullPath = path.resolve(PUBLIC_DIR, attachmentPath);
-    if (!isPathInsidePublicImages(fullPath)) continue;
+    const fullPath = path.resolve(DB_DIR, attachmentPath);
+    if (!isPathInsideImagesDir(fullPath)) continue;
 
     try {
       const stats = fs.statSync(fullPath);
@@ -1185,7 +1254,7 @@ export function cleanupAttachmentFiles(attachmentPaths: string[]): void {
 
   for (const dir of dirs) {
     let current = dir;
-    const imagesRoot = path.resolve(PUBLIC_DIR, "images");
+    const imagesRoot = path.resolve(IMAGES_DIR);
     while (
       current.startsWith(imagesRoot + path.sep) &&
       current !== imagesRoot

@@ -51,7 +51,8 @@
   },
   "filters": {
     "allProjects": "All Projects",
-    "byProject": "Filter by Project"
+    "byProject": "Filter by Project",
+    "dateRange": "Date Range"
   },
   "messages": {
     "success": {

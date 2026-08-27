@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard } from "lucide-react";
+import { Home, LayoutDashboard } from "lucide-react";
 import { useEffect } from "react";
 import Link from "next/link";
 
@@ -79,7 +79,7 @@ export default function Error({
               </Button>
               <Link href="/dashboard/tasks" className="block">
                 <Button variant="outline" className="w-full">
-                  <i className="fas fa-home ltr:mr-2 rtl:ml-2" />
+                  <Home className="h-4 w-4" />
                   {t("common.errorPage.returnHome")}
                 </Button>
               </Link>

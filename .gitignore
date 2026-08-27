@@ -1,27 +1,34 @@
-# Dependencies
+# ─────────────────────────────────────────────
+# TaskBoard - Git Ignore
+# ─────────────────────────────────────────────
+
+# ── Dependencies ──
 node_modules/
 .pnpm-store/
 package-lock.json
 
-# Build outputs
+# ── Build Outputs ──
 .next/
 out/
 build/
 dist/
+*.vsix
 
-# Environment variables
+# ── Environment Variables ──
 .env
 .env.local
 .env.*.local
 
-# Debug logs
+# ── Debug Logs ──
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# IDE
-.vscode/
+# ── Editor & Tooling ──
+.vscode/*
+!**/.vscode/launch.json
+!**/.vscode/tasks.json
 .idea/
 *.swp
 *.swo
@@ -29,21 +36,19 @@ yarn-error.log*
 .kilo/
 .playwright-mcp/
 
-# OS
+# ── Operating Systems ──
 .DS_Store
 Thumbs.db
 
-# TypeScript
+# ── TypeScript ──
 *.tsbuildinfo
 next-env.d.ts
 
-# Vercel
+# ── Vercel ──
 .vercel
 
-# Testing
+# ── Testing ──
 coverage/
 
-# Runtime data
+# ── Runtime Data ──
 data/
-public/images/*
-!public/images/.gitkeep

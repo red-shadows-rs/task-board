@@ -2,7 +2,8 @@ import { promises as fs } from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 
-import { requireAuth } from "@/lib/auth";
+import { canUserReadProject, requireAuth } from "@/lib/auth";
+import { IMAGES_DIR, getProjectById } from "@/lib/db";
 
 const CONTENT_TYPES: Record<string, string> = {
   ".png": "image/png",
@@ -17,10 +18,16 @@ export async function GET(
   { params }: { params: Promise<{ path: string[] }> },
 ) {
   try {
-    await requireAuth();
+    const user = await requireAuth();
     const { path: pathArray } = await params;
 
-    const baseDir = path.resolve(process.cwd(), "public", "images");
+    const projectId = pathArray[0];
+    const project = projectId ? getProjectById(projectId) : null;
+    if (!project || !canUserReadProject(user, project)) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+
+    const baseDir = path.resolve(IMAGES_DIR);
     const filePath = path.resolve(baseDir, ...pathArray);
 
     if (!filePath.startsWith(baseDir + path.sep)) {
@@ -53,6 +60,6 @@ export async function GET(
       },
     });
   } catch (_error) {
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return new NextResponse("Unauthorized", { status: 401 });
   }
 }

@@ -1,0 +1,244 @@
+{
+  "name": "taskboard-vscode",
+  "displayName": "TaskBoard",
+  "description": "Manage your TaskBoard projects, sections, and tasks directly inside VS Code.",
+  "version": "0.2.0",
+  "publisher": "shadow-x78",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "taskboard",
+    "tasks",
+    "project management"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "taskboard",
+          "title": "TaskBoard",
+          "icon": "assets/taskboard.svg"
+        }
+      ]
+    },
+    "views": {
+      "taskboard": [
+        {
+          "id": "taskboard.account",
+          "name": "Account",
+          "icon": "assets/taskboard.svg",
+          "contextualTitle": "TaskBoard Account",
+          "visibility": "visible"
+        },
+        {
+          "id": "taskboard.myTasks",
+          "name": "My Tasks",
+          "icon": "assets/taskboard.svg",
+          "contextualTitle": "TaskBoard My Tasks",
+          "visibility": "visible"
+        },
+        {
+          "id": "taskboard.explorer",
+          "name": "Projects",
+          "icon": "assets/taskboard.svg",
+          "contextualTitle": "TaskBoard Projects",
+          "visibility": "visible"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "taskboard.account",
+        "contents": "Connect to your TaskBoard instance to manage your tasks from VS Code.\n[Sign In](command:taskboard.signIn)",
+        "when": "!taskboard.signedIn"
+      },
+      {
+        "view": "taskboard.myTasks",
+        "contents": "Sign in to see tasks assigned to you.\n[Sign In](command:taskboard.signIn)",
+        "when": "!taskboard.signedIn"
+      },
+      {
+        "view": "taskboard.explorer",
+        "contents": "Sign in to browse projects, sections, and tasks.\n[Sign In](command:taskboard.signIn)",
+        "when": "!taskboard.signedIn"
+      }
+    ],
+    "commands": [
+      {
+        "command": "taskboard.signIn",
+        "title": "Sign In",
+        "category": "TaskBoard",
+        "icon": "$(sign-in)"
+      },
+      {
+        "command": "taskboard.signOut",
+        "title": "Sign Out",
+        "category": "TaskBoard",
+        "icon": "$(sign-out)"
+      },
+      {
+        "command": "taskboard.refresh",
+        "title": "Refresh",
+        "category": "TaskBoard",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "taskboard.openInBrowser",
+        "title": "Open in Browser",
+        "category": "TaskBoard",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "taskboard.setTaskStatus",
+        "title": "Set Status",
+        "category": "TaskBoard",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "taskboard.createTask",
+        "title": "New Task",
+        "category": "TaskBoard",
+        "icon": "$(add)"
+      },
+      {
+        "command": "taskboard.focusExplorer",
+        "title": "Focus Projects",
+        "category": "TaskBoard"
+      },
+      {
+        "command": "taskboard.focusMyTasks",
+        "title": "Focus My Tasks",
+        "category": "TaskBoard",
+        "icon": "$(inbox)"
+      },
+      {
+        "command": "taskboard.openDashboard",
+        "title": "Open Dashboard",
+        "category": "TaskBoard",
+        "icon": "$(browser)"
+      }
+    ],
+    "configuration": {
+      "title": "TaskBoard",
+      "properties": {
+        "taskboard.baseUrl": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "markdownDescription": "Base URL of your TaskBoard deployment, e.g. `https://taskboard.example.com`."
+        },
+        "taskboard.refreshIntervalSeconds": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "markdownDescription": "Automatically refresh every N seconds. `0` disables auto refresh."
+        }
+      }
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "taskboard.refresh",
+          "when": "view == taskboard.explorer && taskboard.signedIn",
+          "group": "navigation@1"
+        },
+        {
+          "command": "taskboard.refresh",
+          "when": "view == taskboard.myTasks && taskboard.signedIn",
+          "group": "navigation@1"
+        },
+        {
+          "command": "taskboard.openDashboard",
+          "when": "view == taskboard.account && taskboard.signedIn",
+          "group": "navigation@1"
+        },
+        {
+          "command": "taskboard.signIn",
+          "when": "view == taskboard.account && !taskboard.signedIn",
+          "group": "navigation@2"
+        },
+        {
+          "command": "taskboard.signOut",
+          "when": "view == taskboard.account && taskboard.signedIn",
+          "group": "1_taskboard@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "taskboard.setTaskStatus",
+          "when": "view =~ /^taskboard\\.(explorer|myTasks)$/ && viewItem =~ /^task/",
+          "group": "inline@1"
+        },
+        {
+          "command": "taskboard.openInBrowser",
+          "when": "view =~ /^taskboard\\.(explorer|myTasks)$/ && viewItem =~ /project|^task/",
+          "group": "inline@2"
+        },
+        {
+          "command": "taskboard.createTask",
+          "when": "view == taskboard.explorer && viewItem == section && taskboard.canCreateTask",
+          "group": "inline@1"
+        },
+        {
+          "command": "taskboard.setTaskStatus",
+          "when": "view =~ /^taskboard\\.(explorer|myTasks)$/ && viewItem =~ /^task/",
+          "group": "1_taskboard@1"
+        },
+        {
+          "command": "taskboard.openInBrowser",
+          "when": "view =~ /^taskboard\\.(explorer|myTasks)$/ && viewItem =~ /project|^task/",
+          "group": "2_taskboard@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "taskboard.refresh",
+          "when": "taskboard.signedIn"
+        },
+        {
+          "command": "taskboard.signOut",
+          "when": "taskboard.signedIn"
+        },
+        {
+          "command": "taskboard.openDashboard",
+          "when": "taskboard.signedIn"
+        },
+        {
+          "command": "taskboard.openInBrowser",
+          "when": "false"
+        },
+        {
+          "command": "taskboard.setTaskStatus",
+          "when": "false"
+        },
+        {
+          "command": "taskboard.createTask",
+          "when": "false"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "vscode:prepublish": "npm run build -- --production",
+    "type-check": "tsc --noEmit",
+    "package": "vsce package --allow-missing-repository"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.1.0",
+    "esbuild": "^0.23.0",
+    "typescript": "^5.5.0"
+  },
+  "allowScripts": {
+    "esbuild@0.23.1": true
+  }
+}

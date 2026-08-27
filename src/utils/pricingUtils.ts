@@ -4,15 +4,6 @@ function getTaskTotal(task: Task): number {
   return (task.assigneePrices ?? []).reduce((sum, ap) => sum + ap.price, 0);
 }
 
-export function calculateSectionTotal(
-  sectionId: string,
-  tasks: Task[],
-): number {
-  return tasks
-    .filter((t) => t.sectionId === sectionId)
-    .reduce((sum, t) => sum + getTaskTotal(t), 0);
-}
-
 export function calculateProjectTotal(
   projectId: string,
   sections: Section[],
