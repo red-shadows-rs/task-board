@@ -1,72 +1,92 @@
 # Contributing to TaskBoard
 
-Thank you for your interest in contributing to TaskBoard. This document outlines the process for contributing to the project.
+Contributions to TaskBoard are welcome. This document describes the development workflow.
 
-## Code of Conduct
+## 🤝 Code of Conduct
 
 This project adheres to a [Code of Conduct](./CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
 
-## How to Contribute
+## 🌿 Branch Naming
 
-### Reporting Bugs
+Use the following prefixes for branches:
 
-Before submitting a bug report:
+- `feature/` - new features
+- `fix/` - bug fixes
+- `docs/` - documentation changes
+- `chore/` - maintenance tasks
 
-1. Check the [existing issues](https://github.com/red-shadows-rs/TaskBoard/issues) to avoid duplicates
-2. Use the bug report template if available
-3. Include detailed steps to reproduce, expected behavior, and actual behavior
-4. Include environment details: Node.js version, browser, OS
+Example: `feature/task-dependencies`
 
-### Suggesting Features
+## 💬 Commit Convention
 
-1. Check the [roadmap](./README.md#-roadmap) and [existing issues](https://github.com/red-shadows-rs/TaskBoard/issues)
-2. Open a feature request with a clear description of the problem and proposed solution
-3. Include use cases and any relevant examples
+Commit messages follow this format:
 
-### Pull Requests
-
-1. Fork the repository
-2. Create a feature branch from `main`:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-3. Make your changes following the project's code style
-4. Ensure all checks pass:
-   ```bash
-   npm run validate
-   ```
-5. Write clear, descriptive commit messages
-6. Push your branch and open a pull request against `main`
-
-### Commit Message Format
-
-Follow this format for commit messages:
-
-```
-task-board | vX.Y.Z | Brief description of changes
+```text
+task-board | <type>: <description>
+task-board | vX.Y.Z | <type>: <description>
 ```
 
-### Development Setup
+- `<type>` is one of `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.
+- `vX.Y.Z` is the current version. Release commits use it.
+- A release ships as ONE commit: the pending feature work plus the version bump,
+  tagged `vX.Y.Z` (there is no separate `release:` bump commit).
+
+Example: `task-board | v4.1.0 | fix: redact assignee prices from member API responses`
+
+## 💅 Code Style
+
+TaskBoard is written in **TypeScript** (strict mode) with **Next.js 16**.
+
+- ESLint 9 flat config with typescript-eslint - no new warnings allowed.
+- Prettier formatting: 2-space indentation, LF line endings, semicolons.
+- Every change must pass `npm run validate` (format + lint + type-check) before committing.
+
+## ✅ Pull Requests
+
+1. Fork the repo and create a branch from `main`.
+2. Make sure `npm run validate` passes.
+3. Describe your change in `CHANGELOG.md` under `[Unreleased]` (rotated into a versioned block at release time).
+4. Fill in the PR template checklist.
+5. Target the `main` branch.
+
+## 🚀 Release Process (maintainers)
+
+A release is ONE commit containing the pending work plus the version bump:
+
+1. Bump the `version` field in `package.json`.
+2. Rotate the version badges in `README.md`, `README_AR.md` and `SECURITY.md`
+   (`version-X.Y.Z` / `الإصدار-X.Y.Z`).
+3. Move the `CHANGELOG.md` `[Unreleased]` section into a `## [vX.Y.Z]` block dated today.
+4. Commit everything as one release commit and tag it:
 
 ```bash
-git clone https://github.com/red-shadows-rs/TaskBoard.git
-cd taskboard
-npm install
-cp .env.example .env.local
-npm run dev
+git add -A
+git commit -m "task-board | vX.Y.Z | feat: one-line summary of the release"
+git tag -a vX.Y.Z -m "task-board vX.Y.Z"
 ```
 
-### Code Style
+Then push the result:
 
-- TypeScript strict mode is enabled
-- ESLint flat config with typescript-eslint
-- Prettier for formatting (2-space indentation, LF line endings, semicolons)
-- Run `npm run validate` before committing to ensure all checks pass
+```bash
+git push origin main --follow-tags
+```
 
-### Project Structure
+The tag push triggers the [release workflow](.github/workflows/release.yml), which
+verifies the version against `package.json`, runs lint/type-check/build, and publishes
+a GitHub release with the notes extracted from `CHANGELOG.md`.
 
-See the [README](./README.md#-project-structure) for a detailed breakdown of the project structure.
-
-## Questions
+## ❓ Questions
 
 If you have questions, feel free to open a discussion or issue on GitHub.
+
+---
+
+<div align="center">
+
+Built by <a href="https://github.com/Shadow-x78">Shadow-x78</a> ·
+<a href="https://github.com/red-shadows-rs">RED SHADOWS | RS</a> ·
+[Back to README](README.md)
+
+<sub>&copy; 2026 TaskBoard</sub>
+
+</div>

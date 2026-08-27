@@ -1,22 +1,29 @@
 # Changelog
 
-All notable changes to TaskBoard will be documented in this file.
+All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [v4.1.1] - 2026-08-27
 
----
+### ✨ Added
 
-## [4.1.0] - 2026-08-26
+- **`[Unreleased]` changelog section** workflow for pending changes, rotated into a versioned block at release time per the CONTRIBUTING release process.
 
-### Added
+### 🎨 Changed
+
+- **README.md fully restructured** to the unified project style: SVG logo banner, flat-square badges, table of contents with anchor links, bilingual language switcher, problem comparison table, roles matrix, expanded quick start, commands and environment tables, refreshed features/tech stack/structure sections.
+- **All repository references switched to kebab-case** (`red-shadows-rs/task-board`): `package.json` name, README_AR, CONTRIBUTING and CHANGELOG links.
+- **All markdown files unified on one documentation style** (README_AR.md, CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md).
+
+## [v4.1.0] - 2026-08-26
+
+### ✨ Added
 
 - **SQLite storage** via `better-sqlite3`, replacing the JSON file database; data now lives in `data/taskboard.db`
-- **Bootstrap leader** — the first user created on an empty database is auto-promoted to leader
+- **Bootstrap leader** - the first user created on an empty database is auto-promoted to leader
 - **Server-enforced role-based access** on every API route (leader / member / client)
-- **Session hardening** — HMAC-signed httpOnly sessions, invalidation on password change, `SESSION_SECRET` required
+- **Session hardening** - HMAC-signed httpOnly sessions, invalidation on password change, `SESSION_SECRET` required
 
-### Changed
+### 🎨 Changed
 
 - **Members** can only view and update status on tasks assigned to them; prices are hidden
 - **Clients** scoped to their own projects; cannot delete tasks or change assignee pricing
@@ -24,80 +31,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Task fetch** on the project detail page now uses `GET /api/tasks?projectId=…` instead of a `POST`-as-query hack
 - **Member edit dialog** keeps password in separate draft state instead of binding to the user object
 
-### Fixed
+### 🐛 Fixed
 
 - Members could previously delete tasks and sections via the API
 - Passwords were sent in plain user payloads on member update
 
-### Security
+### 🔒 Security
 
 - Rate limiting on login and user creation, security headers, and XSS sanitization retained
 
----
+## [v4.0.6] - 2026-05-15
 
-## [4.0.6] - 2026-05-15
-
-### Changed
+### 🎨 Changed
 
 - **Updated author username** from SHADOW_x7 to Shadow-x78 with GitHub link in README, LICENSE, and package.json
 
----
+## [v4.0.5] - 2026-05-14
 
-## [4.0.5] - 2026-05-14
-
-### Fixed
+### 🐛 Fixed
 
 - **Fixed drag-and-drop** on desktop by lowering mobile breakpoint from 1024px to 768px
 - **Fixed metadata icons** to reference existing SVG files instead of missing WebP files
 - **Moved Font Awesome CSS** import from `<link>` tag to `@import` in globals.css
 
-### Removed
+### 🗑️ Removed
 
 - **Removed ESLint disable comment** for Font Awesome CSS link
 
----
+## [v4.0.4] - 2026-05-14
 
-## [4.0.4] - 2026-05-14
-
-### Changed
+### 🎨 Changed
 
 - **Removed ESLint disable comments** from layout.tsx
 - **Removed console.log/error statements** from error.tsx and pdfUtil.ts
 - **Added missing version tags** for v4.0.0 through v4.0.4
 
----
+## [v4.0.3] - 2026-05-14
 
-## [4.0.3] - 2026-05-14
-
-### Changed
+### 🎨 Changed
 
 - **Updated repository links** from `SHADOW-x7/taskboard` to `red-shadows-rs/TaskBoard`
 - **Updated branding** from `RED SHADOWS` to `RED SHADOWS | RS`
 
----
+## [v4.0.2] - 2026-05-14
 
-## [4.0.2] - 2026-05-14
-
-### Added
+### ✨ Added
 
 - **`.env.example`** file with placeholder values for required environment variables
 
-### Changed
+### 🎨 Changed
 
-- **Restored original icon design** — simple 4-rectangle Kanban board SVG replacing the gradient design
+- **Restored original icon design** - simple 4-rectangle Kanban board SVG replacing the gradient design
 
----
+## [v4.0.1] - 2026-05-14
 
-## [4.0.1] - 2026-05-14
-
-### Added
+### ✨ Added
 
 - **Arabic README** (`README.ar.md`) with full RTL-formatted documentation
 - **Contributing Guide** (`CONTRIBUTING.md`) with commit format, code style, and PR workflow
 - **Code of Conduct** (`CODE_OF_CONDUCT.md`) based on Contributor Covenant v2.1
 - **Security Policy** (`SECURITY.md`) with vulnerability reporting process and supported versions
 
-### Changed
+### 🎨 Changed
 
 - **Redesigned SVG icon** with gradient Kanban board design replacing low-resolution WebP icons
 - **Reorganized English README** with professional layout, badges, roadmap, and improved structure
@@ -106,15 +101,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Removed uploaded images** from `public/images/` directory
 - **Fixed `.gitignore`** to track database files and image directory structure
 
-### Removed
+### 🗑️ Removed
 
 - Low-resolution WebP icon files (`icon-*.webp`, `favicon.webp`, `apple-touch-icon.webp`)
 
----
+## [v4.0.0] - 2026-05-14
 
-## [4.0.0] - 2026-05-14
-
-### Added
+### ✨ Added
 
 - **Analytics Dashboard** with interactive charts (Recharts) for project progress, task distribution, and team performance
 - **PDF Export Engine** for projects, sections, tasks, and analytics reports (jsPDF + jspdf-autotable)
@@ -133,7 +126,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Font Awesome 6** icon library integration
 - **IBM Plex Sans Arabic** font for PDF exports
 
-### Changed
+### 🎨 Changed
 
 - Upgraded to Next.js 16 with Turbopack dev server
 - Migrated to ESLint 9 flat config
@@ -141,16 +134,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced task model with attachments, assignee pricing, and bilingual fields
 - Improved form validation with Zod schemas across all API routes
 
-### Fixed
+### 🐛 Fixed
 
 - Session cookie security (httpOnly, secure in production, sameSite strict)
 - Image upload path sanitization and UUID-based naming
 
----
+## [v3.0.0] - 2026-04-01
 
-## [3.0.0] - 2026-04-01
-
-### Added
+### ✨ Added
 
 - **Project Management** with CRUD operations and status tracking (planning, active, completed, on_hold)
 - **Section Management** within projects (Kanban columns)
@@ -168,17 +159,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **API Routes** for projects, sections, tasks, users, and authentication
 - **Dashboard Layout** with authenticated route guard, navbar, and footer
 
-### Changed
+### 🎨 Changed
 
 - Migrated from client-side state to server-side JSON persistence
 - Reorganized component architecture into `common/`, `layouts/`, `pages/`, and `ui/` directories
 - Standardized UI components with class-variance-authority and tailwind-merge
 
----
+## [v2.0.0] - 2026-03-01
 
-## [2.0.0] - 2026-03-01
-
-### Added
+### ✨ Added
 
 - **Kanban Board UI** with task cards and column layout
 - **Task Statuses**: todo, in_progress, in_review, done
@@ -194,16 +183,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tailwind CSS** with custom theme configuration and CSS variables
 - **PostCSS** with autoprefixer
 
-### Changed
+### 🎨 Changed
 
 - Redesigned login page with form validation and error handling
 - Improved TypeScript strict mode configuration
 
----
+## [v1.0.0] - 2026-02-01
 
-## [1.0.0] - 2026-02-01
-
-### Added
+### ✨ Added
 
 - **Next.js App Router** project initialization with TypeScript
 - **Login Page** with basic form and routing
@@ -219,13 +206,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[4.0.6]: https://github.com/red-shadows-rs/TaskBoard/releases/tag/v4.0.6
-[4.0.5]: https://github.com/red-shadows-rs/TaskBoard/releases/tag/v4.0.5
-[4.0.4]: https://github.com/red-shadows-rs/TaskBoard/releases/tag/v4.0.4
-[4.0.3]: https://github.com/red-shadows-rs/TaskBoard/releases/tag/v4.0.3
-[4.0.2]: https://github.com/red-shadows-rs/TaskBoard/releases/tag/v4.0.2
-[4.0.1]: https://github.com/red-shadows-rs/TaskBoard/releases/tag/v4.0.1
-[4.0.0]: https://github.com/red-shadows-rs/TaskBoard/releases/tag/v4.0.0
-[3.0.0]: https://github.com/red-shadows-rs/TaskBoard/releases/tag/v3.0.0
-[2.0.0]: https://github.com/red-shadows-rs/TaskBoard/releases/tag/v2.0.0
-[1.0.0]: https://github.com/red-shadows-rs/TaskBoard/releases/tag/v1.0.0
+[unreleased]: https://github.com/red-shadows-rs/task-board/compare/v4.1.1...HEAD
+[v4.1.1]: https://github.com/red-shadows-rs/task-board/releases/tag/v4.1.1
+[v4.1.0]: https://github.com/red-shadows-rs/task-board/releases/tag/v4.1.0
+[v4.0.6]: https://github.com/red-shadows-rs/task-board/releases/tag/v4.0.6
+[v4.0.5]: https://github.com/red-shadows-rs/task-board/releases/tag/v4.0.5
+[v4.0.4]: https://github.com/red-shadows-rs/task-board/releases/tag/v4.0.4
+[v4.0.3]: https://github.com/red-shadows-rs/task-board/releases/tag/v4.0.3
+[v4.0.2]: https://github.com/red-shadows-rs/task-board/releases/tag/v4.0.2
+[v4.0.1]: https://github.com/red-shadows-rs/task-board/releases/tag/v4.0.1
+[v4.0.0]: https://github.com/red-shadows-rs/task-board/releases/tag/v4.0.0
+[v3.0.0]: https://github.com/red-shadows-rs/task-board/releases/tag/v3.0.0
+[v2.0.0]: https://github.com/red-shadows-rs/task-board/releases/tag/v2.0.0
+[v1.0.0]: https://github.com/red-shadows-rs/task-board/releases/tag/v1.0.0

@@ -9,7 +9,7 @@
 
 Professional bilingual task management for teams & managers - Kanban, roles, analytics, one self-hosted app
 
-[![Version](https://img.shields.io/badge/version-4.1.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-4.1.1-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-10b981?style=flat-square)](LICENSE)
 ![Framework](https://img.shields.io/badge/framework-Next.js%2016-000000?style=flat-square&logo=nextdotjs)
 ![Database](https://img.shields.io/badge/database-SQLite-003b57?style=flat-square&logo=sqlite)
@@ -303,19 +303,20 @@ To report a security vulnerability, please follow the [Security Policy](SECURITY
 
 See [CHANGELOG.md](CHANGELOG.md) for a detailed version history. This project follows [Semantic Versioning](https://semver.org/).
 
-| Version    | Date       | Highlights                                                              |
-| ---------- | ---------- | ----------------------------------------------------------------------- |
-| **v4.1.0** | 2026-08-27 | SQLite storage, server-side RBAC, hardened sessions, GitHub scaffolding |
-| **v4.0.6** | 2026-05-15 | Updated author username, set GitHub repo topics                         |
-| **v4.0.5** | 2026-05-14 | Fixed drag-and-drop on desktop, fixed metadata icons                    |
-| v4.0.4     | 2026-05-14 | Removed ESLint disable comments, removed console logs                   |
-| v4.0.3     | 2026-05-14 | Fixed repo links, updated branding, version bump                        |
-| v4.0.2     | 2026-05-14 | Restored original icon, added .env.example                              |
-| v4.0.1     | 2026-05-14 | Documentation overhaul, Arabic README, data cleanup                     |
-| v4.0.0     | 2026-05-14 | Analytics, PDF export, PWA, bilingual, dark/light theme                 |
-| v3.0.0     | 2026-04-01 | Project/section management, task CRUD, user roles                       |
-| v2.0.0     | 2026-03-01 | Kanban board UI, statuses/priorities/tags, dashboard                    |
-| v1.0.0     | 2026-02-01 | Initial setup: Next.js App Router, login, Tailwind                      |
+| Version    | Date       | Highlights                                                                          |
+| ---------- | ---------- | ----------------------------------------------------------------------------------- |
+| **v4.1.1** | 2026-08-27 | Unified docs style across all markdown, SVG logo banner, kebab-case repo references |
+| **v4.1.0** | 2026-08-27 | SQLite storage, server-side RBAC, hardened sessions, GitHub scaffolding             |
+| **v4.0.6** | 2026-05-15 | Updated author username, set GitHub repo topics                                     |
+| **v4.0.5** | 2026-05-14 | Fixed drag-and-drop on desktop, fixed metadata icons                                |
+| v4.0.4     | 2026-05-14 | Removed ESLint disable comments, removed console logs                               |
+| v4.0.3     | 2026-05-14 | Fixed repo links, updated branding, version bump                                    |
+| v4.0.2     | 2026-05-14 | Restored original icon, added .env.example                                          |
+| v4.0.1     | 2026-05-14 | Documentation overhaul, Arabic README, data cleanup                                 |
+| v4.0.0     | 2026-05-14 | Analytics, PDF export, PWA, bilingual, dark/light theme                             |
+| v3.0.0     | 2026-04-01 | Project/section management, task CRUD, user roles                                   |
+| v2.0.0     | 2026-03-01 | Kanban board UI, statuses/priorities/tags, dashboard                                |
+| v1.0.0     | 2026-02-01 | Initial setup: Next.js App Router, login, Tailwind                                  |
 
 ---
 

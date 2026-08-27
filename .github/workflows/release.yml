@@ -45,7 +45,7 @@ jobs:
       - name: Extract release notes from CHANGELOG.md
         run: |
           VERSION="${{ steps.ver.outputs.version }}"
-          awk "/^## \[$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md > release_notes.txt
+          awk "/^## \[v?$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md > release_notes.txt
           if [ ! -s release_notes.txt ]; then
             echo "No CHANGELOG.md entry found for v$VERSION." > release_notes.txt
           fi

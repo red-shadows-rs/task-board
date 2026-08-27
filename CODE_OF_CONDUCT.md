@@ -39,3 +39,15 @@ Instances of abusive, harassing, or otherwise unacceptable behavior may be repor
 ## Attribution
 
 This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org), version 2.1.
+
+---
+
+<div align="center">
+
+Built by <a href="https://github.com/Shadow-x78">Shadow-x78</a> ·
+<a href="https://github.com/red-shadows-rs">RED SHADOWS | RS</a> ·
+[Back to README](README.md)
+
+<sub>&copy; 2026 TaskBoard</sub>
+
+</div>
